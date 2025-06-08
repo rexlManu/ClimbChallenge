@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Head } from '@inertiajs/react';
-import { BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
+import { BarChart3, Crown, Medal, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 
 interface SummonerData {
     id: number;
@@ -71,19 +71,36 @@ interface DashboardProps {
 
 const getTierColor = (tier: string): string => {
     const tierColors: Record<string, string> = {
-        UNRANKED: 'bg-gray-600',
-        IRON: 'bg-gray-500',
-        BRONZE: 'bg-amber-600',
-        SILVER: 'bg-gray-400',
-        GOLD: 'bg-yellow-500',
-        PLATINUM: 'bg-teal-500',
-        EMERALD: 'bg-emerald-500',
-        DIAMOND: 'bg-blue-500',
-        MASTER: 'bg-purple-600',
-        GRANDMASTER: 'bg-red-600',
-        CHALLENGER: 'bg-orange-500',
+        UNRANKED: 'bg-[#8B7355] text-white',
+        IRON: 'bg-[#8B4513] text-white',
+        BRONZE: 'bg-[#CD7F32] text-white',
+        SILVER: 'bg-[#C0C0C0] text-black',
+        GOLD: 'bg-[#FFD700] text-black',
+        PLATINUM: 'bg-[#00CED1] text-white',
+        EMERALD: 'bg-[#50C878] text-white',
+        DIAMOND: 'bg-[#87CEEB] text-black',
+        MASTER: 'bg-[#9B59B6] text-white',
+        GRANDMASTER: 'bg-[#E74C3C] text-white',
+        CHALLENGER: 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black',
     };
-    return tierColors[tier?.toUpperCase()] || 'bg-gray-600';
+    return tierColors[tier?.toUpperCase()] || 'bg-[#8B7355] text-white';
+};
+
+const getTierGradient = (tier: string): string => {
+    const tierGradients: Record<string, string> = {
+        UNRANKED: 'from-[#8B7355] to-[#6D5B47]',
+        IRON: 'from-[#8B4513] to-[#5D2F0A]',
+        BRONZE: 'from-[#CD7F32] to-[#A0661F]',
+        SILVER: 'from-[#C0C0C0] to-[#A8A8A8]',
+        GOLD: 'from-[#FFD700] to-[#DAB92E]',
+        PLATINUM: 'from-[#00CED1] to-[#20B2AA]',
+        EMERALD: 'from-[#50C878] to-[#3A9B5C]',
+        DIAMOND: 'from-[#87CEEB] to-[#4682B4]',
+        MASTER: 'from-[#9B59B6] to-[#7D3C98]',
+        GRANDMASTER: 'from-[#E74C3C] to-[#C0392B]',
+        CHALLENGER: 'from-[#FFD700] via-[#FFA500] to-[#FF8C00]',
+    };
+    return tierGradients[tier?.toUpperCase()] || 'from-[#8B7355] to-[#6D5B47]';
 };
 
 const getRankValue = (tier: string, rank: string, lp: number): number => {
@@ -114,6 +131,13 @@ const getRankValue = (tier: string, rank: string, lp: number): number => {
     return tierValue + rankValue + lp;
 };
 
+const getPodiumIcon = (position: number) => {
+    if (position === 0) return <Crown className="h-5 w-5 text-[#FFD700]" />;
+    if (position === 1) return <Trophy className="h-5 w-5 text-[#C0C0C0]" />;
+    if (position === 2) return <Medal className="h-5 w-5 text-[#CD7F32]" />;
+    return null;
+};
+
 export default function Dashboard({ participants, championStats, rankProgression, recentMatches }: DashboardProps) {
     // Sort participants by rank
     const sortedParticipants = [...participants].sort((a, b) => {
@@ -131,234 +155,328 @@ export default function Dashboard({ participants, championStats, rankProgression
     return (
         <>
             <Head title="Climb Challenge Dashboard" />
-            <div className="container mx-auto space-y-6 p-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold">Climb Challenge Dashboard</h1>
-                        <p className="text-muted-foreground">Track your friends' League of Legends climb progress</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 rounded-lg border bg-card p-3">
-                            <div className="flex items-center gap-2">
-                                <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                                <span className="text-sm font-medium text-muted-foreground">Total Net LP</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {totalNetLP > 0 ? (
-                                    <TrendingUp className="h-4 w-4 text-green-600" />
-                                ) : totalNetLP < 0 ? (
-                                    <TrendingDown className="h-4 w-4 text-red-600" />
-                                ) : (
-                                    <BarChart3 className="h-4 w-4 text-gray-500" />
-                                )}
-                                <span
-                                    className={`text-lg font-bold ${
-                                        totalNetLP > 0 ? 'text-green-600' : totalNetLP < 0 ? 'text-red-600' : 'text-gray-500'
-                                    }`}
-                                >
-                                    {totalNetLP > 0 ? '+' : ''}
-                                    {totalNetLP}
-                                </span>
-                            </div>
+            {/* Background with gradient and pattern */}
+            <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+                {/* Animated background pattern */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/20 via-purple-600/10 to-transparent"></div>
+                <div className="absolute inset-0 animate-pulse bg-[linear-gradient(45deg,_transparent_25%,_rgba(255,255,255,.02)_50%,_transparent_75%)] bg-[length:60px_60px]"></div>
+
+                <div className="relative container mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+                    {/* Header */}
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="space-y-2">
+                            <h1 className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl lg:text-5xl">
+                                Climb Challenge Dashboard
+                            </h1>
+                            <p className="text-sm text-slate-300 sm:text-base">Track your friends' League of Legends climb progress</p>
+                        </div>
+
+                        {/* Total Net LP Card */}
+                        <div className="flex justify-center lg:justify-end">
+                            <Card className="border-slate-700 bg-gradient-to-r from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
+                                <CardContent className="p-4 sm:p-6">
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <BarChart3 className="h-4 w-4 text-slate-400 sm:h-5 sm:w-5" />
+                                            <span className="text-xs font-medium text-slate-400 sm:text-sm">Total Net LP</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {totalNetLP > 0 ? (
+                                                <TrendingUp className="h-4 w-4 text-emerald-400 sm:h-5 sm:w-5" />
+                                            ) : totalNetLP < 0 ? (
+                                                <TrendingDown className="h-4 w-4 text-red-400 sm:h-5 sm:w-5" />
+                                            ) : (
+                                                <BarChart3 className="h-4 w-4 text-slate-400 sm:h-5 sm:w-5" />
+                                            )}
+                                            <span
+                                                className={`text-lg font-bold sm:text-xl ${
+                                                    totalNetLP > 0 ? 'text-emerald-400' : totalNetLP < 0 ? 'text-red-400' : 'text-slate-400'
+                                                }`}
+                                            >
+                                                {totalNetLP > 0 ? '+' : ''}
+                                                {totalNetLP}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
-                </div>
 
-                <Tabs defaultValue="leaderboard" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-                        <TabsTrigger value="champions">Champion Stats</TabsTrigger>
-                        <TabsTrigger value="progression">Rank Progress</TabsTrigger>
-                        <TabsTrigger value="matches">Recent Matches</TabsTrigger>
-                    </TabsList>
+                    {/* Tabs */}
+                    <Tabs defaultValue="leaderboard" className="space-y-6">
+                        <div className="overflow-x-auto">
+                            <TabsList className="grid w-full min-w-[400px] grid-cols-4 border-slate-700 bg-slate-800/50 backdrop-blur-sm">
+                                <TabsTrigger value="leaderboard" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                                    Leaderboard
+                                </TabsTrigger>
+                                <TabsTrigger value="champions" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                                    Champions
+                                </TabsTrigger>
+                                <TabsTrigger value="progression" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                                    Progress
+                                </TabsTrigger>
+                                <TabsTrigger value="matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                                    Matches
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
 
-                    <TabsContent value="leaderboard" className="space-y-6">
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {sortedParticipants.slice(0, 3).map((participant, index) => (
-                                <Card key={participant.id} className={index === 0 ? 'ring-2 ring-yellow-500' : ''}>
-                                    <CardHeader className="flex flex-row items-center gap-4">
-                                        <div className="relative">
-                                            <Avatar className="h-12 w-12">
-                                                <AvatarImage
-                                                    src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
-                                                    alt="Profile icon"
-                                                />
-                                                <AvatarFallback>{participant.display_name[0]}</AvatarFallback>
-                                            </Avatar>
-                                            {index < 3 && (
-                                                <Badge
-                                                    className={`absolute -top-2 -right-2 ${index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-amber-600'}`}
-                                                >
-                                                    #{index + 1}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold">{participant.display_name}</h3>
-                                            <p className="text-sm text-muted-foreground">{participant.riot_id}</p>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {participant.summoner ? (
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm">Rank</span>
-                                                    <Badge className={getTierColor(participant.summoner.current_tier)}>
-                                                        {participant.summoner.current_formatted_rank}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm">LP</span>
-                                                    <span className="font-medium">{participant.summoner.current_league_points}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm">Win Rate</span>
-                                                    <span className="font-medium">{participant.summoner.current_win_rate}%</span>
-                                                </div>
-                                                <Progress value={participant.summoner.current_win_rate} className="w-full" />
-                                                <div className="flex justify-between text-xs text-muted-foreground">
-                                                    <span>{participant.summoner.current_wins}W</span>
-                                                    <span>{participant.summoner.current_losses}L</span>
-                                                </div>
-                                                <div className="mt-2 flex items-center justify-between border-t pt-2">
-                                                    <span className="text-xs">Net LP</span>
-                                                    <span
-                                                        className={`text-xs font-medium ${participant.summoner.net_lp_change > 0 ? 'text-green-600' : participant.summoner.net_lp_change < 0 ? 'text-red-600' : 'text-gray-500'}`}
-                                                    >
-                                                        {participant.summoner.net_lp_change > 0 ? '+' : ''}
-                                                        {participant.summoner.net_lp_change}
-                                                    </span>
-                                                </div>
-                                                {participant.summoner.total_dodges > 0 && (
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-orange-600">Dodges</span>
-                                                        <span className="text-xs font-medium text-orange-600">
-                                                            {participant.summoner.total_dodges}
-                                                        </span>
+                        <TabsContent value="leaderboard" className="space-y-6">
+                            {/* Top 3 Podium */}
+                            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {sortedParticipants.slice(0, 3).map((participant, index) => (
+                                    <Card
+                                        key={participant.id}
+                                        className={`border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm ${index === 0 ? 'ring-2 shadow-yellow-400/20 ring-yellow-400/50' : ''} transition-all duration-300 hover:scale-105`}
+                                    >
+                                        <CardHeader className="flex flex-row items-center gap-4 pb-3">
+                                            <div className="relative">
+                                                <Avatar className="h-12 w-12 ring-2 ring-slate-600 sm:h-14 sm:w-14">
+                                                    <AvatarImage
+                                                        src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
+                                                        alt="Profile icon"
+                                                    />
+                                                    <AvatarFallback className="bg-slate-700 text-slate-200">
+                                                        {participant.display_name[0]}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                {index < 3 && (
+                                                    <div className="absolute -top-2 -right-2 flex items-center justify-center">
+                                                        {getPodiumIcon(index)}
+                                                        <Badge
+                                                            className={`ml-1 ${
+                                                                index === 0
+                                                                    ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black'
+                                                                    : index === 1
+                                                                      ? 'bg-[#C0C0C0] text-black'
+                                                                      : 'bg-[#CD7F32] text-white'
+                                                            }`}
+                                                        >
+                                                            #{index + 1}
+                                                        </Badge>
                                                     </div>
                                                 )}
                                             </div>
-                                        ) : (
-                                            <p className="text-muted-foreground">No data available</p>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Full Leaderboard</CardTitle>
-                                <CardDescription>Complete ranking of all participants</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-12">#</TableHead>
-                                            <TableHead>Player</TableHead>
-                                            <TableHead>Rank</TableHead>
-                                            <TableHead>LP</TableHead>
-                                            <TableHead>Net LP</TableHead>
-                                            <TableHead>Games</TableHead>
-                                            <TableHead>Win Rate</TableHead>
-                                            <TableHead>Level</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {sortedParticipants.map((participant, index) => (
-                                            <TableRow key={participant.id}>
-                                                <TableCell>
-                                                    <Badge variant={index < 3 ? 'default' : 'secondary'}>{index + 1}</Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-3">
-                                                        <Avatar className="h-8 w-8">
-                                                            <AvatarImage
-                                                                src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
-                                                                alt="Profile icon"
-                                                            />
-                                                            <AvatarFallback>{participant.display_name[0]}</AvatarFallback>
-                                                        </Avatar>
-                                                        <div>
-                                                            <div className="font-medium">{participant.display_name}</div>
-                                                            <div className="text-sm text-muted-foreground">{participant.riot_id}</div>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {participant.summoner ? (
-                                                        <Badge className={getTierColor(participant.summoner.current_tier)}>
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="truncate font-semibold text-white">{participant.display_name}</h3>
+                                                <p className="truncate text-sm text-slate-400">{participant.riot_id}</p>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            {participant.summoner ? (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-slate-300">Rank</span>
+                                                        <Badge className={`${getTierColor(participant.summoner.current_tier)} font-semibold`}>
                                                             {participant.summoner.current_formatted_rank}
                                                         </Badge>
-                                                    ) : (
-                                                        <span className="text-muted-foreground">-</span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>{participant.summoner?.current_league_points || '-'}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        <span
-                                                            className={`font-medium ${participant.summoner?.net_lp_change && participant.summoner.net_lp_change > 0 ? 'text-green-600' : participant.summoner?.net_lp_change && participant.summoner.net_lp_change < 0 ? 'text-red-600' : 'text-gray-500'}`}
-                                                        >
-                                                            {participant.summoner?.net_lp_change !== undefined ? (
-                                                                <>
-                                                                    {participant.summoner.net_lp_change > 0 ? '+' : ''}
-                                                                    {participant.summoner.net_lp_change}
-                                                                </>
-                                                            ) : (
-                                                                '-'
-                                                            )}
-                                                        </span>
-                                                        {participant.summoner?.total_dodges && participant.summoner.total_dodges > 0 && (
-                                                            <span
-                                                                className="text-xs text-orange-600"
-                                                                title={`${participant.summoner.total_dodges} dodges`}
-                                                            >
-                                                                🚫
-                                                            </span>
-                                                        )}
                                                     </div>
-                                                </TableCell>
-                                                <TableCell>{participant.summoner?.current_total_games || '-'}</TableCell>
-                                                <TableCell>
-                                                    {participant.summoner ? (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-slate-300">LP</span>
+                                                        <span className="font-medium text-white">{participant.summoner.current_league_points}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-slate-300">Win Rate</span>
                                                         <span
-                                                            className={
+                                                            className={`font-medium ${
                                                                 participant.summoner.current_win_rate >= 60
-                                                                    ? 'text-green-600'
+                                                                    ? 'text-emerald-400'
                                                                     : participant.summoner.current_win_rate >= 50
-                                                                      ? 'text-yellow-600'
-                                                                      : 'text-red-600'
-                                                            }
+                                                                      ? 'text-yellow-400'
+                                                                      : 'text-red-400'
+                                                            }`}
                                                         >
                                                             {participant.summoner.current_win_rate}%
                                                         </span>
-                                                    ) : (
-                                                        '-'
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>{participant.summoner?.level || '-'}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Progress value={participant.summoner.current_win_rate} className="h-2 w-full bg-slate-700" />
+                                                        <div className="flex justify-between text-xs text-slate-400">
+                                                            <span className="text-emerald-400">{participant.summoner.current_wins}W</span>
+                                                            <span className="text-red-400">{participant.summoner.current_losses}L</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="border-t border-slate-700 pt-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs text-slate-400">Net LP</span>
+                                                            <span
+                                                                className={`text-sm font-medium ${
+                                                                    participant.summoner.net_lp_change > 0
+                                                                        ? 'text-emerald-400'
+                                                                        : participant.summoner.net_lp_change < 0
+                                                                          ? 'text-red-400'
+                                                                          : 'text-slate-400'
+                                                                }`}
+                                                            >
+                                                                {participant.summoner.net_lp_change > 0 ? '+' : ''}
+                                                                {participant.summoner.net_lp_change}
+                                                            </span>
+                                                        </div>
+                                                        {participant.summoner.total_dodges > 0 && (
+                                                            <div className="mt-2 flex items-center justify-between">
+                                                                <span className="text-xs text-orange-400">Dodges</span>
+                                                                <Badge variant="outline" className="border-orange-400 text-orange-400">
+                                                                    {participant.summoner.total_dodges}
+                                                                </Badge>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="py-4 text-center text-slate-400">No data available</p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
 
-                    <TabsContent value="champions">
-                        <ChampionStatsTable championStats={championStats} />
-                    </TabsContent>
+                            {/* Full Leaderboard */}
+                            <Card className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle className="text-white">Full Leaderboard</CardTitle>
+                                    <CardDescription className="text-slate-400">Complete ranking of all participants</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                                                    <TableHead className="w-12 text-slate-300">#</TableHead>
+                                                    <TableHead className="text-slate-300">Player</TableHead>
+                                                    <TableHead className="text-slate-300">Rank</TableHead>
+                                                    <TableHead className="text-slate-300">LP</TableHead>
+                                                    <TableHead className="text-slate-300">Net LP</TableHead>
+                                                    <TableHead className="hidden text-slate-300 sm:table-cell">Games</TableHead>
+                                                    <TableHead className="text-slate-300">Win Rate</TableHead>
+                                                    <TableHead className="hidden text-slate-300 md:table-cell">Level</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {sortedParticipants.map((participant, index) => (
+                                                    <TableRow key={participant.id} className="border-slate-700 hover:bg-slate-800/30">
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-1">
+                                                                {getPodiumIcon(index)}
+                                                                <Badge
+                                                                    variant={index < 3 ? 'default' : 'secondary'}
+                                                                    className={
+                                                                        index < 3 ? 'bg-gradient-to-r from-slate-600 to-slate-700 text-white' : ''
+                                                                    }
+                                                                >
+                                                                    {index + 1}
+                                                                </Badge>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar className="h-8 w-8 ring-1 ring-slate-600">
+                                                                    <AvatarImage
+                                                                        src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
+                                                                        alt="Profile icon"
+                                                                    />
+                                                                    <AvatarFallback className="bg-slate-700 text-slate-200">
+                                                                        {participant.display_name[0]}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="min-w-0">
+                                                                    <div className="truncate font-medium text-white">{participant.display_name}</div>
+                                                                    <div className="truncate text-sm text-slate-400 sm:hidden md:block">
+                                                                        {participant.riot_id}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {participant.summoner ? (
+                                                                <Badge
+                                                                    className={`${getTierColor(participant.summoner.current_tier)} font-semibold whitespace-nowrap`}
+                                                                >
+                                                                    {participant.summoner.current_formatted_rank}
+                                                                </Badge>
+                                                            ) : (
+                                                                <span className="text-slate-500">-</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-white">
+                                                            {participant.summoner?.current_league_points || '-'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-1">
+                                                                <span
+                                                                    className={`font-medium ${
+                                                                        participant.summoner?.net_lp_change && participant.summoner.net_lp_change > 0
+                                                                            ? 'text-emerald-400'
+                                                                            : participant.summoner?.net_lp_change &&
+                                                                                participant.summoner.net_lp_change < 0
+                                                                              ? 'text-red-400'
+                                                                              : 'text-slate-400'
+                                                                    }`}
+                                                                >
+                                                                    {participant.summoner?.net_lp_change !== undefined ? (
+                                                                        <>
+                                                                            {participant.summoner.net_lp_change > 0 ? '+' : ''}
+                                                                            {participant.summoner.net_lp_change}
+                                                                        </>
+                                                                    ) : (
+                                                                        '-'
+                                                                    )}
+                                                                </span>
+                                                                {participant.summoner?.total_dodges && participant.summoner.total_dodges > 0 && (
+                                                                    <span
+                                                                        className="text-orange-400"
+                                                                        title={`${participant.summoner.total_dodges} dodges`}
+                                                                    >
+                                                                        🚫
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="hidden text-white sm:table-cell">
+                                                            {participant.summoner?.current_total_games || '-'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {participant.summoner ? (
+                                                                <span
+                                                                    className={`font-medium ${
+                                                                        participant.summoner.current_win_rate >= 60
+                                                                            ? 'text-emerald-400'
+                                                                            : participant.summoner.current_win_rate >= 50
+                                                                              ? 'text-yellow-400'
+                                                                              : 'text-red-400'
+                                                                    }`}
+                                                                >
+                                                                    {participant.summoner.current_win_rate}%
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-slate-500">-</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="hidden text-white md:table-cell">
+                                                            {participant.summoner?.level || '-'}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
 
-                    <TabsContent value="progression">
-                        <RankProgressionChart rankProgression={rankProgression} />
-                    </TabsContent>
+                        <TabsContent value="champions">
+                            <ChampionStatsTable championStats={championStats} />
+                        </TabsContent>
 
-                    <TabsContent value="matches">
-                        <RecentMatchesList recentMatches={recentMatches} />
-                    </TabsContent>
-                </Tabs>
+                        <TabsContent value="progression">
+                            <RankProgressionChart rankProgression={rankProgression} />
+                        </TabsContent>
+
+                        <TabsContent value="matches">
+                            <RecentMatchesList recentMatches={recentMatches} />
+                        </TabsContent>
+                    </Tabs>
+                </div>
             </div>
         </>
     );

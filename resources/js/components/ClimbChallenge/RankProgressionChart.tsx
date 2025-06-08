@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChartConfig, ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import axios from 'axios';
-import { Calendar, Clock } from 'lucide-react';
+import { BarChart2, Calendar, Clock, TrendingUp } from 'lucide-react';
 import * as React from 'react';
 import { CartesianGrid, Legend, Line, LineChart, XAxis, YAxis } from 'recharts';
 
@@ -25,7 +25,18 @@ interface HourlyData {
 }
 
 const getPlayerColor = (index: number): string => {
-    const colors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
+    const colors = [
+        'hsl(var(--chart-1))',
+        'hsl(var(--chart-2))',
+        'hsl(var(--chart-3))',
+        'hsl(var(--chart-4))',
+        'hsl(var(--chart-5))',
+        '#60A5FA', // blue-400
+        '#34D399', // emerald-400
+        '#FBBF24', // amber-400
+        '#F87171', // red-400
+        '#A78BFA', // violet-400
+    ];
     return colors[index % colors.length];
 };
 
@@ -212,14 +223,24 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
 
     if (!currentData || currentData.length === 0 || !currentPlayers || currentPlayers.length === 0) {
         return (
-            <Card>
+            <Card className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
                 <CardHeader>
-                    <CardTitle>Rank Progression</CardTitle>
-                    <CardDescription>Track rank progress over time</CardDescription>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                        <TrendingUp className="h-5 w-5 text-blue-400" />
+                        Rank Progression
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">Track rank progress over time</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex h-64 items-center justify-center text-muted-foreground">
-                        {isLoadingHourly ? 'Loading hourly data...' : 'No progression data available'}
+                    <div className="flex h-64 items-center justify-center text-slate-400">
+                        {isLoadingHourly ? (
+                            <div className="flex items-center gap-2">
+                                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-400"></div>
+                                Loading hourly data...
+                            </div>
+                        ) : (
+                            'No progression data available'
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -227,17 +248,24 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
     }
 
     return (
-        <Card>
+        <Card className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
             <CardHeader>
-                <CardTitle>Rank Progression</CardTitle>
-                <CardDescription>Track rank progress over time for all players</CardDescription>
-                <div className="mt-4 flex items-center gap-4">
+                <CardTitle className="flex items-center gap-2 text-white">
+                    <BarChart2 className="h-5 w-5 text-blue-400" />
+                    Rank Progression
+                </CardTitle>
+                <CardDescription className="text-slate-400">Track rank progress over time for all players</CardDescription>
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="flex items-center gap-2">
                         <Button
                             variant={viewType === 'daily' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setViewType('daily')}
-                            className="flex items-center gap-2"
+                            className={`flex items-center gap-2 ${
+                                viewType === 'daily'
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
+                            }`}
                         >
                             <Calendar className="h-4 w-4" />
                             Daily View
@@ -246,7 +274,11 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                             variant={viewType === 'hourly' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setViewType('hourly')}
-                            className="flex items-center gap-2"
+                            className={`flex items-center gap-2 ${
+                                viewType === 'hourly'
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
+                            }`}
                         >
                             <Clock className="h-4 w-4" />
                             Hourly View
@@ -255,12 +287,12 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
 
                     {viewType === 'hourly' && (
                         <Select value={selectedDate} onValueChange={setSelectedDate}>
-                            <SelectTrigger className="w-48">
+                            <SelectTrigger className="w-full border-slate-600 bg-slate-700 text-white sm:w-48">
                                 <SelectValue placeholder="Select date" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="border-slate-600 bg-slate-800">
                                 {availableDates.map((date) => (
-                                    <SelectItem key={date.value} value={date.value}>
+                                    <SelectItem key={date.value} value={date.value} className="text-white hover:bg-slate-700">
                                         {date.label}
                                     </SelectItem>
                                 ))}
@@ -283,13 +315,14 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                 right: 12,
                             }}
                         >
-                            <CartesianGrid vertical={false} />
+                            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgb(71 85 105)" />
                             <XAxis
                                 dataKey={viewType === 'daily' ? 'date' : 'time'}
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={8}
                                 minTickGap={viewType === 'hourly' ? 10 : 32}
+                                tick={{ fill: 'rgb(148 163 184)', fontSize: '12px' }}
                                 tickFormatter={(value) => {
                                     if (viewType === 'daily') {
                                         const date = new Date(value);
@@ -312,6 +345,7 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={8}
+                                tick={{ fill: 'rgb(148 163 184)', fontSize: '12px' }}
                                 domain={[
                                     Math.min(...dynamicTicks) - (viewType === 'daily' ? 200 : 100),
                                     Math.max(...dynamicTicks) + (viewType === 'daily' ? 200 : 100),
@@ -367,8 +401,8 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                             : dataPoint?.display || `${selectedDate} at ${label}`;
 
                                     return (
-                                        <div className="rounded-lg border bg-background p-3 shadow-md">
-                                            <div className="mb-2 text-sm font-medium">{displayLabel}</div>
+                                        <div className="rounded-lg border border-slate-600 bg-slate-800/95 p-3 shadow-xl backdrop-blur-sm">
+                                            <div className="mb-2 text-sm font-medium text-white">{displayLabel}</div>
                                             <div className="space-y-1">
                                                 {payload.map((entry) => {
                                                     const value = entry.value as number;
@@ -377,8 +411,8 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
 
                                                     return (
                                                         <div key={playerName} className="flex items-center gap-3">
-                                                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                                                            <span className="text-sm font-medium">{playerName}:</span>
+                                                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
+                                                            <span className="text-sm font-medium text-slate-200">{playerName}:</span>
                                                             {value ? (
                                                                 <div className="flex items-center gap-2">
                                                                     <img
@@ -386,10 +420,10 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                                                         alt={formatRankValue(value)}
                                                                         className="h-6 w-6 object-contain"
                                                                     />
-                                                                    <span className="text-sm">{formatRankValue(value)}</span>
+                                                                    <span className="text-sm font-medium text-white">{formatRankValue(value)}</span>
                                                                 </div>
                                                             ) : (
-                                                                <span className="text-sm text-muted-foreground">No data</span>
+                                                                <span className="text-sm text-slate-400">No data</span>
                                                             )}
                                                         </div>
                                                     );
@@ -399,15 +433,16 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                     );
                                 }}
                             />
-                            <Legend />
+                            <Legend wrapperStyle={{ color: 'rgb(148 163 184)' }} />
                             {currentPlayers.map((player) => (
                                 <Line
                                     key={player}
                                     dataKey={player}
                                     type="monotone"
                                     stroke={chartConfig[player]?.color}
-                                    strokeWidth={2}
-                                    dot={false}
+                                    strokeWidth={3}
+                                    dot={{ fill: chartConfig[player]?.color, strokeWidth: 2, r: 4 }}
+                                    activeDot={{ r: 6, stroke: chartConfig[player]?.color, strokeWidth: 2 }}
                                     connectNulls={false}
                                 />
                             ))}
