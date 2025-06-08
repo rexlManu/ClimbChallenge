@@ -34,6 +34,13 @@ const getKDABadgeVariant = (kda: number): 'default' | 'secondary' | 'destructive
     return 'destructive';
 };
 
+const getKDABadgeStyle = (kda: number): string => {
+    if (kda >= 3) return 'bg-emerald-600 text-white border-emerald-600';
+    if (kda >= 2) return 'bg-blue-600 text-white border-blue-600';
+    if (kda >= 1.5) return 'bg-yellow-600 text-black border-yellow-600';
+    return 'bg-red-600 text-white border-red-600';
+};
+
 const getWinRateColor = (winRate: number): string => {
     if (winRate >= 70) return 'text-emerald-400';
     if (winRate >= 60) return 'text-blue-400';
@@ -153,12 +160,7 @@ export default function ChampionStatsTable({ championStats }: ChampionStatsTable
                                                     <span className={`font-medium ${getWinRateColor(stat.winRate)}`}>{stat.winRate}%</span>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        variant={getKDABadgeVariant(stat.avgKda)}
-                                                        className={`${getKDAColor(stat.avgKda)} border-current`}
-                                                    >
-                                                        {stat.avgKda}
-                                                    </Badge>
+                                                    <Badge className={`font-semibold ${getKDABadgeStyle(stat.avgKda)}`}>{stat.avgKda}</Badge>
                                                 </TableCell>
                                                 <TableCell className="hidden text-sm text-slate-400 sm:table-cell">
                                                     {stat.avgKills}/{stat.avgDeaths}/{stat.avgAssists}
@@ -235,10 +237,7 @@ export default function ChampionStatsTable({ championStats }: ChampionStatsTable
                                                                 </span>
                                                             </TableCell>
                                                             <TableCell>
-                                                                <Badge
-                                                                    variant={getKDABadgeVariant(stat.avg_kda)}
-                                                                    className={`${getKDAColor(stat.avg_kda)} border-current`}
-                                                                >
+                                                                <Badge className={`font-semibold ${getKDABadgeStyle(stat.avg_kda)}`}>
                                                                     {stat.avg_kda}
                                                                 </Badge>
                                                             </TableCell>

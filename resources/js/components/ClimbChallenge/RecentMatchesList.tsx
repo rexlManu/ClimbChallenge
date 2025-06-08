@@ -30,6 +30,13 @@ const getKDABadgeVariant = (kda: number): 'default' | 'secondary' | 'destructive
     return 'destructive';
 };
 
+const getKDABadgeStyle = (kda: number): string => {
+    if (kda >= 3) return 'bg-emerald-600 text-white border-emerald-600';
+    if (kda >= 2) return 'bg-blue-600 text-white border-blue-600';
+    if (kda >= 1.5) return 'bg-yellow-600 text-black border-yellow-600';
+    return 'bg-red-600 text-white border-red-600';
+};
+
 const getWinRateColor = (winRate: number): string => {
     if (winRate >= 70) return 'text-emerald-400';
     if (winRate >= 60) return 'text-blue-400';
@@ -142,9 +149,7 @@ export default function RecentMatchesList({ recentMatches }: RecentMatchesListPr
                                                 </span>
                                             </TableCell>
                                             <TableCell className="hidden sm:table-cell">
-                                                <Badge variant={getKDABadgeVariant(kda)} className={`${getKDAColor(kda)} border-current`}>
-                                                    {kda}
-                                                </Badge>
+                                                <Badge className={`font-semibold ${getKDABadgeStyle(kda)}`}>{kda}</Badge>
                                             </TableCell>
                                             <TableCell className="hidden text-sm text-slate-400 md:table-cell">
                                                 {new Date(match.match_date).toLocaleDateString()}
@@ -202,7 +207,7 @@ export default function RecentMatchesList({ recentMatches }: RecentMatchesListPr
                     return (
                         <Card
                             key={playerName}
-                            className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                            className="hover:shadow-3xl border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm transition-shadow duration-200"
                         >
                             <CardHeader className="pb-3">
                                 <CardTitle className="flex items-center gap-2 text-lg text-white">
@@ -232,9 +237,7 @@ export default function RecentMatchesList({ recentMatches }: RecentMatchesListPr
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm text-slate-300">Avg KDA</span>
-                                    <Badge variant={getKDABadgeVariant(avgKda)} className={`${getKDAColor(avgKda)} border-current`}>
-                                        {avgKda}
-                                    </Badge>
+                                    <Badge className={`font-semibold ${getKDABadgeStyle(avgKda)}`}>{avgKda}</Badge>
                                 </div>
                                 <div className="border-t border-slate-700 pt-3">
                                     <div className="flex justify-between text-xs">

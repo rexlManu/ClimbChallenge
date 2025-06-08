@@ -228,7 +228,7 @@ export default function Dashboard({ participants, championStats, rankProgression
                                 {sortedParticipants.slice(0, 3).map((participant, index) => (
                                     <Card
                                         key={participant.id}
-                                        className={`border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm ${index === 0 ? 'ring-2 shadow-yellow-400/20 ring-yellow-400/50' : ''} transition-all duration-300 hover:scale-105`}
+                                        className={`border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm ${index === 0 ? 'ring-2 shadow-yellow-400/20 ring-yellow-400/50' : ''} transition-shadow duration-200 hover:shadow-2xl`}
                                     >
                                         <CardHeader className="flex flex-row items-center gap-4 pb-3">
                                             <div className="relative">
@@ -354,7 +354,10 @@ export default function Dashboard({ participants, championStats, rankProgression
                                             </TableHeader>
                                             <TableBody>
                                                 {sortedParticipants.map((participant, index) => (
-                                                    <TableRow key={participant.id} className="border-slate-700 hover:bg-slate-800/30">
+                                                    <TableRow
+                                                        key={participant.id}
+                                                        className="border-slate-700 transition-colors duration-150 hover:bg-slate-800/30"
+                                                    >
                                                         <TableCell>
                                                             <div className="flex items-center gap-1">
                                                                 {getPodiumIcon(index)}
@@ -381,9 +384,14 @@ export default function Dashboard({ participants, championStats, rankProgression
                                                                 </Avatar>
                                                                 <div className="min-w-0">
                                                                     <div className="truncate font-medium text-white">{participant.display_name}</div>
-                                                                    <div className="truncate text-sm text-slate-400 sm:hidden md:block">
+                                                                    <a
+                                                                        href={`https://dpm.lol/${participant.riot_id.replace('#', '-')}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="cursor-pointer truncate text-sm text-blue-400 transition-colors duration-150 hover:text-blue-300 hover:underline sm:hidden md:block"
+                                                                    >
                                                                         {participant.riot_id}
-                                                                    </div>
+                                                                    </a>
                                                                 </div>
                                                             </div>
                                                         </TableCell>
