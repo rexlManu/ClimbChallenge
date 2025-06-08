@@ -93,7 +93,10 @@ class UpdateSummoners extends Command
                 $isDodge = false;
 
                 if ($lastTrack) {
-                    $lpChange = $leaguePoints - $lastTrack->league_points;
+                    // Calculate LP change accounting for division/tier changes
+                    $currentRankValue = $this->getRankValue($tier, $rank, $leaguePoints);
+                    $previousRankValue = $this->getRankValue($lastTrack->tier, $lastTrack->rank, $lastTrack->league_points);
+                    $lpChange = $currentRankValue - $previousRankValue;
                     
                     if ($lpChange > 0) {
                         $lpChangeType = 'gain';
@@ -103,9 +106,10 @@ class UpdateSummoners extends Command
                         
                         // Detect potential dodges
                         // Dodges are typically -5LP (first dodge) or -15LP (subsequent dodges)
-                        // and happen without a match being played
+                        // and happen without a match being played (same wins/losses)
                         if (($lpChange === -5 || $lpChange === -15) && 
-                            $lastTrack->wins === $wins && $lastTrack->losses === $losses) {
+                            $lastTrack->wins === $wins && $lastTrack->losses === $losses &&
+                            $lastTrack->tier === $tier && $lastTrack->rank === $rank) {
                             $lpChangeReason = 'dodge';
                             $isDodge = true;
                         } else {
@@ -238,5 +242,34 @@ class UpdateSummoners extends Command
 
                 $this->info('Updated summoner for ' . $participant->display_name);
             });
+    }
+
+    private function getRankValue($tier, $rank, $leaguePoints)
+    {
+        $tierValues = [
+            'UNRANKED' => -400,
+            'IRON' => 0,
+            'BRONZE' => 400,
+            'SILVER' => 800,
+            'GOLD' => 1200,
+            'PLATINUM' => 1600,
+            'EMERALD' => 2000,
+            'DIAMOND' => 2400,
+            'MASTER' => 2800,
+            'GRANDMASTER' => 3200,
+            'CHALLENGER' => 3600,
+        ];
+
+        $rankValues = [
+            'IV' => 0,
+            'III' => 100,
+            'II' => 200,
+            'I' => 300
+        ];
+
+        $tierValue = $tierValues[strtoupper($tier)] ?? -400;
+        $rankValue = $rankValues[$rank] ?? 0;
+
+        return $tierValue + $rankValue + $leaguePoints;
     }
 }
