@@ -164,8 +164,11 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                 </div>
             </CardHeader>
             <CardContent className="px-2 sm:p-6">
-                <div className={viewType === 'hourly' ? 'overflow-x-auto' : ''}>
-                    <ChartContainer config={chartConfig} className={`aspect-auto h-[400px] ${viewType === 'hourly' ? 'w-[1200px]' : 'w-full'}`}>
+                <div className={viewType === 'hourly' ? 'w-full overflow-x-auto' : ''}>
+                    <ChartContainer
+                        config={chartConfig}
+                        className={`aspect-auto h-[400px] ${viewType === 'hourly' ? 'w-[1800px] min-w-full' : 'w-full'}`}
+                    >
                         <LineChart
                             accessibilityLayer
                             data={currentData}
@@ -197,8 +200,16 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={8}
-                                domain={['dataMin - 200', 'dataMax + 200']}
-                                ticks={[-400, 0, 400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600]}
+                                domain={viewType === 'hourly' ? ['dataMin - 100', 'dataMax + 100'] : ['dataMin - 200', 'dataMax + 200']}
+                                ticks={
+                                    viewType === 'hourly'
+                                        ? [
+                                              -400, -200, 0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600,
+                                              1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300,
+                                              3400, 3500, 3600,
+                                          ]
+                                        : [-400, 0, 400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600]
+                                }
                                 tickFormatter={(value) => {
                                     if (Number(value) < 0) {
                                         return 'UNRANKED';
@@ -216,7 +227,19 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                         'CHALLENGER',
                                     ];
                                     const tierIndex = Math.floor(Number(value) / 400);
-                                    return tierOrder[tierIndex] || '';
+                                    const tier = tierOrder[tierIndex] || '';
+
+                                    if (viewType === 'hourly' && tier) {
+                                        // Show division for hourly view
+                                        const remainingValue = Number(value) % 400;
+                                        const rankIndex = Math.floor(remainingValue / 100);
+                                        const rankOrder = ['IV', 'III', 'II', 'I'];
+                                        const rank =
+                                            tier === 'MASTER' || tier === 'GRANDMASTER' || tier === 'CHALLENGER' ? '' : rankOrder[rankIndex] || 'IV';
+                                        return rank ? `${tier} ${rank}` : tier;
+                                    }
+
+                                    return tier;
                                 }}
                             />
                             <ChartTooltip
