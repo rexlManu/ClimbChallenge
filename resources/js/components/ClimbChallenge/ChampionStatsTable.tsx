@@ -23,6 +23,11 @@ interface ChampionStatsTableProps {
 export default function ChampionStatsTable({ championStats }: ChampionStatsTableProps) {
     const participants = Object.keys(championStats);
 
+    // Helper function to normalize champion names for ddragon URLs (remove apostrophes)
+    const normalizeChampionName = (championName: string): string => {
+        return championName.replace(/'/g, '').replace(' ', '');
+    };
+
     if (participants.length === 0) {
         return (
             <Card>
@@ -103,7 +108,7 @@ export default function ChampionStatsTable({ championStats }: ChampionStatsTable
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-8 w-8">
                                                         <AvatarImage 
-                                                            src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${stat.champion}.png`}
+                                                            src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/champion/${normalizeChampionName(stat.champion)}.png`}
                                                             alt={`${stat.champion} champion icon`}
                                                         />
                                                         <AvatarFallback>{stat.champion.slice(0, 2)}</AvatarFallback>
@@ -162,7 +167,7 @@ export default function ChampionStatsTable({ championStats }: ChampionStatsTable
                                                         <div className="flex items-center gap-3">
                                                             <Avatar className="h-8 w-8">
                                                                 <AvatarImage 
-                                                                    src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${stat.champion}.png`}
+                                                                    src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/champion/${normalizeChampionName(stat.champion)}.png`}
                                                                     alt={`${stat.champion} champion icon`}
                                                                 />
                                                                 <AvatarFallback>{stat.champion.slice(0, 2)}</AvatarFallback>

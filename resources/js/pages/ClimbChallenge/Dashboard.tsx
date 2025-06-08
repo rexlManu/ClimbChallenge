@@ -140,7 +140,7 @@ export default function Dashboard({ participants, championStats, rankProgression
                                         <div className="relative">
                                             <Avatar className="h-12 w-12">
                                                 <AvatarImage 
-                                                    src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
+                                                    src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
                                                     alt="Profile icon"
                                                 />
                                                 <AvatarFallback>{participant.display_name[0]}</AvatarFallback>
@@ -220,7 +220,7 @@ export default function Dashboard({ participants, championStats, rankProgression
                                                     <div className="flex items-center gap-3">
                                                         <Avatar className="h-8 w-8">
                                                             <AvatarImage 
-                                                                src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
+                                                                src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
                                                                 alt="Profile icon"
                                                             />
                                                             <AvatarFallback>{participant.display_name[0]}</AvatarFallback>

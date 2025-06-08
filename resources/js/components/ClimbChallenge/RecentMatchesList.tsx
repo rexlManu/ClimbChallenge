@@ -21,6 +21,11 @@ export default function RecentMatchesList({ recentMatches }: RecentMatchesListPr
         new Date(b).getTime() - new Date(a).getTime()
     );
 
+    // Helper function to normalize champion names for ddragon URLs (remove apostrophes)
+    const normalizeChampionName = (championName: string): string => {
+        return championName.replace(/'/g, '').replace(' ', '');
+    };
+
     if (matchDates.length === 0) {
         return (
             <Card>
@@ -98,7 +103,7 @@ export default function RecentMatchesList({ recentMatches }: RecentMatchesListPr
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-8 w-8">
                                                     <AvatarImage 
-                                                        src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${match.champion}.png`}
+                                                        src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/champion/${normalizeChampionName(match.champion)}.png`}
                                                         alt={`${match.champion} champion icon`}
                                                     />
                                                     <AvatarFallback>{match.champion.slice(0, 2)}</AvatarFallback>
