@@ -62,6 +62,73 @@ const getRankImageUrl = (value: number): string => {
     return `/assets/img/Rank=${formattedTier}.png`;
 };
 
+const calculateDataRange = (data: Array<Record<string, string | number | null>>, players: string[]): { min: number; max: number } => {
+    let min = Number.MAX_SAFE_INTEGER;
+    let max = Number.MIN_SAFE_INTEGER;
+
+    data.forEach((entry) => {
+        players.forEach((player) => {
+            const value = entry[player];
+            if (typeof value === 'number') {
+                min = Math.min(min, value);
+                max = Math.max(max, value);
+            }
+        });
+    });
+
+    // If no valid data found, return default range
+    if (min === Number.MAX_SAFE_INTEGER || max === Number.MIN_SAFE_INTEGER) {
+        return { min: -400, max: 3600 };
+    }
+
+    return { min, max };
+};
+
+const generateDynamicTicks = (min: number, max: number, viewType: 'daily' | 'hourly'): number[] => {
+    const tierBoundaries = [-400, 0, 400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600];
+
+    // Add some padding to the range
+    const padding = viewType === 'daily' ? 400 : 200; // One tier padding for daily, half tier for hourly
+    const paddedMin = min - padding;
+    const paddedMax = max + padding;
+
+    // Find relevant tier boundaries within the padded range
+    const relevantBoundaries = tierBoundaries.filter((boundary) => boundary >= paddedMin && boundary <= paddedMax);
+
+    // Ensure we have at least the boundaries just outside our data range
+    const minBoundary = tierBoundaries.filter((b) => b <= paddedMin).pop();
+    const maxBoundary = tierBoundaries.filter((b) => b >= paddedMax)[0];
+
+    if (minBoundary !== undefined && !relevantBoundaries.includes(minBoundary)) {
+        relevantBoundaries.unshift(minBoundary);
+    }
+    if (maxBoundary !== undefined && !relevantBoundaries.includes(maxBoundary)) {
+        relevantBoundaries.push(maxBoundary);
+    }
+
+    // For hourly view, add division boundaries within relevant tiers
+    if (viewType === 'hourly') {
+        const additionalTicks: number[] = [];
+        for (let i = 0; i < relevantBoundaries.length - 1; i++) {
+            const tierStart = relevantBoundaries[i];
+            const tierEnd = relevantBoundaries[i + 1];
+
+            // Only add division ticks for tiers that contain actual data
+            if (tierStart >= paddedMin && tierEnd <= paddedMax) {
+                // Add division boundaries (every 100 LP within a tier)
+                for (let div = tierStart + 100; div < tierEnd; div += 100) {
+                    if (div >= paddedMin && div <= paddedMax) {
+                        additionalTicks.push(div);
+                    }
+                }
+            }
+        }
+        relevantBoundaries.push(...additionalTicks);
+    }
+
+    return relevantBoundaries.sort((a, b) => a - b);
+};
+
 export default function RankProgressionChart({ rankProgression }: RankProgressionChartProps) {
     const { dailyChartData, players, availableDates } = rankProgression;
     const [viewType, setViewType] = React.useState<'daily' | 'hourly'>('daily');
@@ -80,6 +147,21 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
             return config;
         }, {} as ChartConfig);
     }, [players]);
+
+    // Calculate dynamic data range and ticks
+    const { dataRange, dynamicTicks } = React.useMemo(() => {
+        const currentData = viewType === 'daily' ? dailyChartData : hourlyData?.chartData || [];
+        const currentPlayers = viewType === 'daily' ? players : hourlyData?.players || [];
+
+        if (!currentData || currentData.length === 0 || !currentPlayers || currentPlayers.length === 0) {
+            return { dataRange: { min: -400, max: 3600 }, dynamicTicks: [-400, 0, 400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600] };
+        }
+
+        const dataRange = calculateDataRange(currentData, currentPlayers);
+        const dynamicTicks = generateDynamicTicks(dataRange.min, dataRange.max, viewType);
+
+        return { dataRange, dynamicTicks };
+    }, [viewType, dailyChartData, hourlyData, players]);
 
     // Load hourly data when date changes or view switches to hourly
     React.useEffect(() => {
@@ -200,16 +282,11 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={8}
-                                domain={viewType === 'hourly' ? ['dataMin - 100', 'dataMax + 100'] : ['dataMin - 200', 'dataMax + 200']}
-                                ticks={
-                                    viewType === 'hourly'
-                                        ? [
-                                              -400, -200, 0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600,
-                                              1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300,
-                                              3400, 3500, 3600,
-                                          ]
-                                        : [-400, 0, 400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600]
-                                }
+                                domain={[
+                                    Math.min(...dynamicTicks) - (viewType === 'daily' ? 200 : 100),
+                                    Math.max(...dynamicTicks) + (viewType === 'daily' ? 200 : 100),
+                                ]}
+                                ticks={dynamicTicks}
                                 tickFormatter={(value) => {
                                     if (Number(value) < 0) {
                                         return 'UNRANKED';
