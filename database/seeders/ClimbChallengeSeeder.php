@@ -42,6 +42,18 @@ class ClimbChallengeSeeder extends Seeder
                 'tagLine' => 'EUW4',
                 'puuid' => $faker->uuid(),
             ],
+            [
+                'display_name' => 'John Doe',
+                'gameName' => 'JohnDoe',
+                'tagLine' => 'EUW5',
+                'puuid' => $faker->uuid(),
+            ],
+            [
+                'display_name' => 'Emma Frost2',
+                'gameName' => 'EmmaFrost2',
+                'tagLine' => 'EUW6',
+                'puuid' => $faker->uuid(),
+            ],
         ];
 
         $createdParticipants = [];

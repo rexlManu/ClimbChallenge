@@ -1,85 +1,79 @@
-import { Line } from 'react-chartjs-2';
+import * as React from "react"
+import { CartesianGrid, Legend, Line, LineChart, XAxis, YAxis } from "recharts"
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler,
-} from 'chart.js';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+} from "@/components/ui/chart"
 
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler
-);
-
-interface RankTrack {
-    display_name: string;
-    tier: string;
-    rank: string;
-    league_points: number;
-    wins: number;
-    losses: number;
-    created_at: string;
+interface RankProgressionData {
+    chartData: Array<Record<string, string | number | null>>;
+    players: string[];
 }
 
 interface RankProgressionChartProps {
-    rankProgression: Record<string, RankTrack[]>;
+    rankProgression: RankProgressionData;
 }
-
-const getRankValue = (tier: string, rank: string, lp: number): number => {
-    const tierValues: Record<string, number> = {
-        'IRON': 0,
-        'BRONZE': 400,
-        'SILVER': 800,
-        'GOLD': 1200,
-        'PLATINUM': 1600,
-        'EMERALD': 2000,
-        'DIAMOND': 2400,
-        'MASTER': 2800,
-        'GRANDMASTER': 3200,
-        'CHALLENGER': 3600,
-    };
-    
-    const rankValues: Record<string, number> = {
-        'IV': 0, 'III': 100, 'II': 200, 'I': 300
-    };
-    
-    const tierValue = tierValues[tier?.toUpperCase()] || 0;
-    const rankValue = rankValues[rank] || 0;
-    
-    return tierValue + rankValue + lp;
-};
 
 const getPlayerColor = (index: number): string => {
     const colors = [
-        '#3b82f6', // blue
-        '#ef4444', // red
-        '#10b981', // green
-        '#f59e0b', // amber
-        '#8b5cf6', // violet
-        '#ec4899', // pink
-        '#06b6d4', // cyan
-        '#84cc16', // lime
+        'var(--chart-1)',
+        'var(--chart-2)',
+        'var(--chart-3)',
+        'var(--chart-4)',
+        'var(--chart-5)',
     ];
     return colors[index % colors.length];
 };
 
-export default function RankProgressionChart({ rankProgression }: RankProgressionChartProps) {
-    // Process data for chart
-    const playerNames = Object.keys(rankProgression);
+const formatRankValue = (value: number): string => {
+    const tierOrder = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
+    const rankOrder = ['IV', 'III', 'II', 'I'];
     
-    if (playerNames.length === 0) {
+    const tierIndex = Math.floor(value / 400);
+    const remainingValue = value % 400;
+    const rankIndex = Math.floor(remainingValue / 100);
+    const lp = remainingValue % 100;
+    
+    const tier = tierOrder[tierIndex] || 'UNKNOWN';
+    const rank = tier === 'MASTER' || tier === 'GRANDMASTER' || tier === 'CHALLENGER' ? '' : rankOrder[rankIndex] || 'IV';
+    
+    return `${tier} ${rank} ${lp}LP`.trim();
+};
+
+const getRankImageUrl = (value: number): string => {
+    const tierOrder = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
+    const tierIndex = Math.floor(value / 400);
+    const tier = tierOrder[tierIndex] || 'IRON';
+    
+    // Capitalize first letter, rest lowercase to match file naming
+    const formattedTier = tier.charAt(0) + tier.slice(1).toLowerCase();
+    return `/assets/img/Rank=${formattedTier}.png`;
+};
+
+export default function RankProgressionChart({ rankProgression }: RankProgressionChartProps) {
+    const { chartData, players } = rankProgression;
+
+    // Create chart config for all players
+    const chartConfig: ChartConfig = React.useMemo(() => {
+        if (!players) return {};
+        return players.reduce((config, player, index) => {
+            config[player] = {
+                label: player,
+                color: getPlayerColor(index),
+            };
+            return config;
+        }, {} as ChartConfig);
+    }, [players]);
+    
+    if (!chartData || chartData.length === 0 || !players || players.length === 0) {
         return (
             <Card>
                 <CardHeader>
@@ -95,121 +89,122 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
         );
     }
 
-    // Get all unique dates and sort them
-    const allDates = Array.from(
-        new Set(
-            playerNames.flatMap(name => 
-                rankProgression[name].map(track => 
-                    new Date(track.created_at).toLocaleDateString()
-                )
-            )
-        )
-    ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-    const datasets = playerNames.map((name, index) => {
-        const playerTracks = rankProgression[name].sort(
-            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-
-        const data = allDates.map(date => {
-            const track = playerTracks.find(
-                t => new Date(t.created_at).toLocaleDateString() === date
-            );
-            return track ? getRankValue(track.tier, track.rank, track.league_points) : null;
-        });
-
-        const color = getPlayerColor(index);
-
-        return {
-            label: name,
-            data,
-            borderColor: color,
-            backgroundColor: color + '20',
-            borderWidth: 2,
-            fill: false,
-            tension: 0.1,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            spanGaps: true,
-        };
-    });
-
-    const chartData = {
-        labels: allDates,
-        datasets,
-    };
-
-    const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'top' as const,
-            },
-            title: {
-                display: false,
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context: any) {
-                        const value = context.parsed.y;
-                        const label = context.dataset.label || '';
-                        if (value === null) return `${label}: No data`;
-                        
-                        // Convert back to tier/rank/LP for display
-                        const tierOrder = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
-                        const rankOrder = ['IV', 'III', 'II', 'I'];
-                        
-                        const tierIndex = Math.floor(value / 400);
-                        const remainingValue = value % 400;
-                        const rankIndex = Math.floor(remainingValue / 100);
-                        const lp = remainingValue % 100;
-                        
-                        const tier = tierOrder[tierIndex] || 'UNKNOWN';
-                        const rank = tier === 'MASTER' || tier === 'GRANDMASTER' || tier === 'CHALLENGER' ? '' : rankOrder[rankIndex] || 'IV';
-                        
-                        return `${label}: ${tier} ${rank} ${lp}LP`;
-                    },
-                },
-            },
-        },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Date',
-                },
-            },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Rank Value',
-                },
-                ticks: {
-                    callback: function(value: string | number) {
-                        const tierOrder = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
-                        const tierIndex = Math.floor(Number(value) / 400);
-                        return tierOrder[tierIndex] || '';
-                    },
-                },
-            },
-        },
-        interaction: {
-            intersect: false,
-            mode: 'index' as const,
-        },
-    };
-
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Rank Progression</CardTitle>
-                <CardDescription>Track rank progress over time</CardDescription>
+                <CardDescription>
+                    Track rank progress over time for all players
+                </CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="h-96">
-                    <Line data={chartData} options={options} />
-                </div>
+            <CardContent className="px-2 sm:p-6">
+                <ChartContainer
+                    config={chartConfig}
+                    className="aspect-auto h-[400px] w-full"
+                >
+                    <LineChart
+                        accessibilityLayer
+                        data={chartData}
+                        margin={{
+                            left: 12,
+                            right: 12,
+                        }}
+                    >
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            minTickGap={32}
+                            tickFormatter={(value) => {
+                                const date = new Date(value)
+                                return date.toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                })
+                            }}
+                        />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            domain={['dataMin - 200', 'dataMax + 200']}
+                            ticks={[0, 400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600]}
+                            tickFormatter={(value) => {
+                                const tierOrder = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
+                                const tierIndex = Math.floor(Number(value) / 400);
+                                return tierOrder[tierIndex] || '';
+                            }}
+                        />
+                        <ChartTooltip
+                            content={({ active, payload, label }) => {
+                                if (!active || !payload || !payload.length) {
+                                    return null;
+                                }
+
+                                return (
+                                    <div className="rounded-lg border bg-background p-3 shadow-md">
+                                        <div className="mb-2 text-sm font-medium">
+                                            {new Date(label).toLocaleDateString("en-US", {
+                                                month: "short",
+                                                day: "numeric",
+                                                year: "numeric",
+                                            })}
+                                        </div>
+                                        <div className="space-y-1">
+                                                                                         {payload.map((entry) => {
+                                                 const value = entry.value as number;
+                                                 const playerName = entry.dataKey as string;
+                                                 const color = entry.color;
+                                                 
+                                                 return (
+                                                     <div key={playerName} className="flex items-center gap-3">
+                                                         <div 
+                                                             className="h-2 w-2 rounded-full" 
+                                                             style={{ backgroundColor: color }}
+                                                         />
+                                                         <span className="text-sm font-medium">
+                                                             {playerName}:
+                                                         </span>
+                                                         {value ? (
+                                                             <div className="flex items-center gap-2">
+                                                                 <img 
+                                                                     src={getRankImageUrl(value)}
+                                                                     alt={formatRankValue(value)}
+                                                                     className="h-6 w-6 object-contain"
+                                                                 />
+                                                                 <span className="text-sm">
+                                                                     {formatRankValue(value)}
+                                                                 </span>
+                                                             </div>
+                                                         ) : (
+                                                             <span className="text-sm text-muted-foreground">
+                                                                 No data
+                                                             </span>
+                                                         )}
+                                                     </div>
+                                                 );
+                                             })}
+                                        </div>
+                                    </div>
+                                );
+                            }}
+                        />
+                        <Legend />
+                        {players.map((player) => (
+                            <Line
+                                key={player}
+                                dataKey={player}
+                                type="monotone"
+                                stroke={chartConfig[player]?.color}
+                                strokeWidth={2}
+                                dot={false}
+                                connectNulls={false}
+                            />
+                        ))}
+                    </LineChart>
+                </ChartContainer>
             </CardContent>
         </Card>
     );

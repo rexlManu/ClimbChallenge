@@ -9,6 +9,7 @@ import RankProgressionChart from '@/components/ClimbChallenge/RankProgressionCha
 import ChampionStatsTable from '@/components/ClimbChallenge/ChampionStatsTable';
 import RecentMatchesList from '@/components/ClimbChallenge/RecentMatchesList';
 
+
 interface SummonerData {
     id: number;
     level: number;
@@ -42,14 +43,9 @@ interface ChampionStat {
     win_rate: number;
 }
 
-interface RankTrack {
-    display_name: string;
-    tier: string;
-    rank: string;
-    league_points: number;
-    wins: number;
-    losses: number;
-    created_at: string;
+interface RankProgressionData {
+    chartData: Array<Record<string, string | number | null>>;
+    players: string[];
 }
 
 interface RecentMatch {
@@ -64,7 +60,7 @@ interface RecentMatch {
 interface DashboardProps {
     participants: Participant[];
     championStats: Record<string, ChampionStat[]>;
-    rankProgression: Record<string, RankTrack[]>;
+    rankProgression: RankProgressionData;
     recentMatches: Record<string, RecentMatch[]>;
 }
 

@@ -96,7 +96,7 @@ class ClimbChallengeController extends Controller
 
     private function getRankProgression()
     {
-        return DB::table('summoner_tracks as st')
+        $rawData = DB::table('summoner_tracks as st')
             ->join('summoners as s', 'st.summoner_id', '=', 's.id')
             ->join('participants as p', 's.participant_id', '=', 'p.id')
             ->select([
@@ -108,10 +108,78 @@ class ClimbChallengeController extends Controller
                 'st.losses',
                 'st.created_at'
             ])
-            ->orderBy('p.display_name')
             ->orderBy('st.created_at')
-            ->get()
-            ->groupBy('display_name');
+            ->get();
+
+        // Get all unique dates
+        $allDates = $rawData->map(function ($item) {
+            return \Carbon\Carbon::parse($item->created_at)->format('Y-m-d');
+        })->unique()->sort()->values();
+
+        // Get all unique players
+        $allPlayers = $rawData->pluck('display_name')->unique()->sort()->values();
+
+        // Convert rank to numeric value for charting
+        $getRankValue = function ($tier, $rank, $lp) {
+            $tierValues = [
+                'IRON' => 0,
+                'BRONZE' => 400,
+                'SILVER' => 800,
+                'GOLD' => 1200,
+                'PLATINUM' => 1600,
+                'EMERALD' => 2000,
+                'DIAMOND' => 2400,
+                'MASTER' => 2800,
+                'GRANDMASTER' => 3200,
+                'CHALLENGER' => 3600,
+            ];
+
+            $rankValues = [
+                'IV' => 0,
+                'III' => 100,
+                'II' => 200,
+                'I' => 300
+            ];
+
+            $tierValue = $tierValues[strtoupper($tier)] ?? 0;
+            $rankValue = $rankValues[$rank] ?? 0;
+
+            return $tierValue + $rankValue + $lp;
+        };
+
+        // Format data for Recharts
+        $chartData = $allDates->map(function ($date) use ($rawData, $allPlayers, $getRankValue) {
+            $dateData = ['date' => $date];
+
+            foreach ($allPlayers as $player) {
+                $playerData = $rawData->where('display_name', $player)
+                    ->where(function ($item) use ($date) {
+                        return \Carbon\Carbon::parse($item->created_at)->format('Y-m-d') === $date;
+                    })
+                    ->first();
+
+                if ($playerData) {
+                    $dateData[$player] = $getRankValue($playerData->tier, $playerData->rank, $playerData->league_points);
+                } else {
+                    // Find the last known value before this date
+                    $lastKnown = $rawData->where('display_name', $player)
+                        ->where(function ($item) use ($date) {
+                            return \Carbon\Carbon::parse($item->created_at)->format('Y-m-d') < $date;
+                        })
+                        ->sortByDesc('created_at')
+                        ->first();
+
+                    $dateData[$player] = $lastKnown ? $getRankValue($lastKnown->tier, $lastKnown->rank, $lastKnown->league_points) : null;
+                }
+            }
+
+            return $dateData;
+        });
+
+        return [
+            'chartData' => $chartData->values(),
+            'players' => $allPlayers,
+        ];
     }
 
     private function getRecentMatches(int $limit = 20)
