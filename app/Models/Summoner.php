@@ -86,7 +86,19 @@ class Summoner extends Model
      */
     public function getCurrentFormattedRankAttribute(): string
     {
-        return ucfirst(strtolower($this->current_tier)) . ' ' . $this->current_rank;
+        if ($this->current_tier === 'UNRANKED') {
+            return 'Unranked';
+        }
+
+        $tier = ucfirst(strtolower($this->current_tier));
+        $rank = $this->current_rank;
+
+        // For Master, Grandmaster, and Challenger, don't show rank
+        if (in_array($this->current_tier, ['MASTER', 'GRANDMASTER', 'CHALLENGER'])) {
+            return $tier;
+        }
+
+        return trim($tier . ' ' . $rank);
     }
 
     /**

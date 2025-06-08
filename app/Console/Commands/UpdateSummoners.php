@@ -60,7 +60,7 @@ class UpdateSummoners extends Command
 
                 // Handle unranked players by setting default values
                 $tier = $solo5v5LeagueEntry?->tier ?? 'UNRANKED';
-                $rank = $solo5v5LeagueEntry?->rank ?? null;
+                $rank = $solo5v5LeagueEntry?->rank ?? '';
                 $leaguePoints = $solo5v5LeagueEntry?->leaguePoints ?? 0;
                 $wins = $solo5v5LeagueEntry?->wins ?? 0;
                 $losses = $solo5v5LeagueEntry?->losses ?? 0;

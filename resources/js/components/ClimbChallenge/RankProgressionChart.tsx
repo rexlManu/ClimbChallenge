@@ -34,6 +34,11 @@ const getPlayerColor = (index: number): string => {
 };
 
 const formatRankValue = (value: number): string => {
+    // Handle unranked (negative values)
+    if (value < 0) {
+        return 'Unranked';
+    }
+    
     const tierOrder = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
     const rankOrder = ['IV', 'III', 'II', 'I'];
     
@@ -49,6 +54,11 @@ const formatRankValue = (value: number): string => {
 };
 
 const getRankImageUrl = (value: number): string => {
+    // Handle unranked (negative values)
+    if (value < 0) {
+        return `/assets/img/Rank=Unranked.png`;
+    }
+    
     const tierOrder = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
     const tierIndex = Math.floor(value / 400);
     const tier = tierOrder[tierIndex] || 'IRON';
@@ -130,8 +140,11 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                             axisLine={false}
                             tickMargin={8}
                             domain={['dataMin - 200', 'dataMax + 200']}
-                            ticks={[0, 400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600]}
+                            ticks={[-400, 0, 400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600]}
                             tickFormatter={(value) => {
+                                if (Number(value) < 0) {
+                                    return 'UNRANKED';
+                                }
                                 const tierOrder = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
                                 const tierIndex = Math.floor(Number(value) / 400);
                                 return tierOrder[tierIndex] || '';

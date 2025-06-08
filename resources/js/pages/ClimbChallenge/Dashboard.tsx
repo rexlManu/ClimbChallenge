@@ -66,6 +66,7 @@ interface DashboardProps {
 
 const getTierColor = (tier: string): string => {
     const tierColors: Record<string, string> = {
+        'UNRANKED': 'bg-gray-600',
         'IRON': 'bg-gray-500',
         'BRONZE': 'bg-amber-600',
         'SILVER': 'bg-gray-400',
@@ -77,11 +78,12 @@ const getTierColor = (tier: string): string => {
         'GRANDMASTER': 'bg-red-600',
         'CHALLENGER': 'bg-orange-500',
     };
-    return tierColors[tier?.toUpperCase()] || 'bg-gray-500';
+    return tierColors[tier?.toUpperCase()] || 'bg-gray-600';
 };
 
 const getRankValue = (tier: string, rank: string, lp: number): number => {
     const tierValues: Record<string, number> = {
+        'UNRANKED': -400,
         'IRON': 0,
         'BRONZE': 400,
         'SILVER': 800,
@@ -98,7 +100,7 @@ const getRankValue = (tier: string, rank: string, lp: number): number => {
         'IV': 0, 'III': 100, 'II': 200, 'I': 300
     };
     
-    const tierValue = tierValues[tier?.toUpperCase()] || 0;
+    const tierValue = tierValues[tier?.toUpperCase()] || -400;
     const rankValue = rankValues[rank] || 0;
     
     return tierValue + rankValue + lp;

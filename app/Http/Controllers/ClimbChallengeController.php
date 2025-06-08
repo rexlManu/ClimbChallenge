@@ -122,6 +122,7 @@ class ClimbChallengeController extends Controller
         // Convert rank to numeric value for charting
         $getRankValue = function ($tier, $rank, $lp) {
             $tierValues = [
+                'UNRANKED' => -400,
                 'IRON' => 0,
                 'BRONZE' => 400,
                 'SILVER' => 800,
@@ -141,7 +142,7 @@ class ClimbChallengeController extends Controller
                 'I' => 300
             ];
 
-            $tierValue = $tierValues[strtoupper($tier)] ?? 0;
+            $tierValue = $tierValues[strtoupper($tier)] ?? -400;
             $rankValue = $rankValues[$rank] ?? 0;
 
             return $tierValue + $rankValue + $lp;
