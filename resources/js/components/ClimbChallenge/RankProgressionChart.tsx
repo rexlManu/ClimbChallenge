@@ -20,6 +20,8 @@ interface RankProgressionChartProps {
 interface HourlyData {
     chartData: Array<Record<string, string | number | null>>;
     players: string[];
+    centerTime?: string;
+    centerIndex?: number;
 }
 
 const getPlayerColor = (index: number): string => {
@@ -135,6 +137,7 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
     const [selectedDate, setSelectedDate] = React.useState<string>(availableDates[availableDates.length - 1]?.value || '');
     const [hourlyData, setHourlyData] = React.useState<HourlyData | null>(null);
     const [isLoadingHourly, setIsLoadingHourly] = React.useState(false);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     // Create chart config for all players
     const chartConfig: ChartConfig = React.useMemo(() => {
@@ -167,9 +170,13 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
     React.useEffect(() => {
         if (viewType === 'hourly' && selectedDate) {
             setIsLoadingHourly(true);
+            const currentTime = new Date().toISOString();
             axios
                 .get('/climb-challenge/hourly-progression', {
-                    params: { date: selectedDate },
+                    params: {
+                        date: selectedDate,
+                        currentTime: currentTime,
+                    },
                 })
                 .then((response) => {
                     setHourlyData(response.data);
@@ -182,6 +189,23 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                 });
         }
     }, [viewType, selectedDate]);
+
+    // Auto-scroll to center time when hourly data loads
+    React.useEffect(() => {
+        if (viewType === 'hourly' && hourlyData && hourlyData.centerIndex !== undefined && scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const chartWidth = 1800; // Total chart width
+            const dataPoints = hourlyData.chartData.length;
+            const pointWidth = chartWidth / dataPoints;
+            const centerPosition = hourlyData.centerIndex * pointWidth - container.clientWidth / 2;
+
+            // Smooth scroll to center position
+            container.scrollTo({
+                left: Math.max(0, centerPosition),
+                behavior: 'smooth',
+            });
+        }
+    }, [viewType, hourlyData]);
 
     const currentData = viewType === 'daily' ? dailyChartData : hourlyData?.chartData || [];
     const currentPlayers = viewType === 'daily' ? players : hourlyData?.players || [];
@@ -246,7 +270,7 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                 </div>
             </CardHeader>
             <CardContent className="px-2 sm:p-6">
-                <div className={viewType === 'hourly' ? 'w-full overflow-x-auto' : ''}>
+                <div ref={viewType === 'hourly' ? scrollContainerRef : null} className={viewType === 'hourly' ? 'w-full overflow-x-auto' : ''}>
                     <ChartContainer
                         config={chartConfig}
                         className={`aspect-auto h-[400px] ${viewType === 'hourly' ? 'w-[1800px] min-w-full' : 'w-full'}`}
@@ -274,7 +298,13 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                             day: 'numeric',
                                         });
                                     } else {
-                                        return value; // Already formatted as HH:MM
+                                        // For hourly view, show time and date info
+                                        const dataPoint = currentData.find((d) => d.time === value);
+                                        if (dataPoint && dataPoint.display) {
+                                            // Show just the time part for most ticks, but include date for midnight
+                                            return value === '00:00' ? dataPoint.display : value;
+                                        }
+                                        return value; // Fallback to time only
                                     }
                                 }}
                             />
@@ -325,17 +355,20 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                         return null;
                                     }
 
+                                    // Find the corresponding data point for better tooltip info
+                                    const dataPoint = currentData.find((d) => d.time === label || d.date === label);
+                                    const displayLabel =
+                                        viewType === 'daily'
+                                            ? new Date(label).toLocaleDateString('en-US', {
+                                                  month: 'short',
+                                                  day: 'numeric',
+                                                  year: 'numeric',
+                                              })
+                                            : dataPoint?.display || `${selectedDate} at ${label}`;
+
                                     return (
                                         <div className="rounded-lg border bg-background p-3 shadow-md">
-                                            <div className="mb-2 text-sm font-medium">
-                                                {viewType === 'daily'
-                                                    ? new Date(label).toLocaleDateString('en-US', {
-                                                          month: 'short',
-                                                          day: 'numeric',
-                                                          year: 'numeric',
-                                                      })
-                                                    : `${selectedDate} at ${label}`}
-                                            </div>
+                                            <div className="mb-2 text-sm font-medium">{displayLabel}</div>
                                             <div className="space-y-1">
                                                 {payload.map((entry) => {
                                                     const value = entry.value as number;

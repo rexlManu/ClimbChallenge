@@ -225,6 +225,18 @@ class ClimbChallengeController extends Controller
     public function getHourlyProgression(Request $request)
     {
         $date = $request->get('date', now()->format('Y-m-d'));
+        $currentDateTime = $request->get('currentTime', now()->format('Y-m-d H:i:s'));
+        
+        // Create center time from date and current time
+        $centerTime = \Carbon\Carbon::parse($currentDateTime);
+        if ($request->has('date') && !$request->has('currentTime')) {
+            // If only date is provided, use current time of day but on the specified date
+            $centerTime = \Carbon\Carbon::parse($date . ' ' . now()->format('H:i:s'));
+        }
+        
+        // Generate 24 hours centered around current time (12 hours before, 12 hours after)
+        $startTime = $centerTime->copy()->subHours(12);
+        $endTime = $centerTime->copy()->addHours(12);
         
         $rawData = DB::table('summoner_tracks as st')
             ->join('summoners as s', 'st.summoner_id', '=', 's.id')
@@ -238,14 +250,20 @@ class ClimbChallengeController extends Controller
                 'st.losses',
                 'st.created_at'
             ])
-            ->whereDate('st.created_at', $date)
+            ->whereBetween('st.created_at', [$startTime, $endTime])
             ->orderBy('st.created_at')
             ->get();
 
-        // Get all unique hours for the selected date
+        // Generate hours from start to end time
         $allHours = collect();
-        for ($hour = 0; $hour < 24; $hour++) {
-            $allHours->push(sprintf('%02d:00', $hour));
+        $currentHour = $startTime->copy();
+        while ($currentHour <= $endTime) {
+            $allHours->push([
+                'time' => $currentHour->format('H:i'),
+                'fullDateTime' => $currentHour->format('Y-m-d H:i'),
+                'display' => $currentHour->format('M j, H:i')
+            ]);
+            $currentHour->addHour();
         }
 
         // Get all unique players
@@ -256,17 +274,19 @@ class ClimbChallengeController extends Controller
         };
 
         // Format data for hourly chart
-        $chartData = $allHours->map(function ($hour) use ($rawData, $allPlayers, $getRankValue, $date) {
-            $hourData = ['time' => $hour];
-            $targetDateTime = $date . ' ' . $hour;
+        $chartData = $allHours->map(function ($hourInfo) use ($rawData, $allPlayers, $getRankValue) {
+            $hourData = [
+                'time' => $hourInfo['time'],
+                'fullDateTime' => $hourInfo['fullDateTime'],
+                'display' => $hourInfo['display']
+            ];
+            $targetDateTime = $hourInfo['fullDateTime'];
 
             foreach ($allPlayers as $player) {
-                // Find the latest entry for this player within this hour
+                // Find the latest entry for this player up to this hour
                 $playerData = $rawData->where('display_name', $player)
                     ->where(function ($item) use ($targetDateTime) {
-                        $itemHour = \Carbon\Carbon::parse($item->created_at)->format('H:i');
-                        $targetHour = \Carbon\Carbon::parse($targetDateTime)->format('H:i');
-                        return $itemHour <= $targetHour;
+                        return \Carbon\Carbon::parse($item->created_at) <= \Carbon\Carbon::parse($targetDateTime);
                     })
                     ->sortByDesc('created_at')
                     ->first();
@@ -274,7 +294,7 @@ class ClimbChallengeController extends Controller
                 if ($playerData) {
                     $hourData[$player] = $getRankValue($playerData->tier, $playerData->rank, $playerData->league_points);
                 } else {
-                    // Find the last known value before this time
+                    // Find the last known value before this time (broader search)
                     $lastKnown = DB::table('summoner_tracks as st')
                         ->join('summoners as s', 'st.summoner_id', '=', 's.id')
                         ->join('participants as p', 's.participant_id', '=', 'p.id')
@@ -300,6 +320,8 @@ class ClimbChallengeController extends Controller
         return response()->json([
             'chartData' => $chartData->values(),
             'players' => $allPlayers,
+            'centerTime' => $centerTime->format('H:i'),
+            'centerIndex' => 12, // Always 12 since we go 12 hours back and forward
         ]);
     }
 
