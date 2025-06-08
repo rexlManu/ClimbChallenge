@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# ClimbChallenge
+
+A laravel 12 app with inertia.js, react.js, typescript, Tailwind CSS 4 and shadcn.
+
+- Run commands inside ddev
+- Use as package manager bun as example ddev bun install zod or bunx works too
+- Never run bun run build, since dev server with hotswap is already running

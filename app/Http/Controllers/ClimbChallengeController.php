@@ -1,0 +1,138 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\LeagueMatchSummoner;
+use App\Models\Participant;
+use App\Models\Summoner;
+use App\Models\SummonerTrack;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Spatie\QueryBuilder\QueryBuilder;
+
+class ClimbChallengeController extends Controller
+{
+    public function index()
+    {
+        // Get all participants with their current summoner data
+        $participants = QueryBuilder::for(Participant::class)
+            ->allowedSorts(['display_name'])
+            ->with(['summoner' => function ($query) {
+                $query->select([
+                    'id',
+                    'participant_id',
+                    'level',
+                    'profile_icon_id',
+                    'current_tier',
+                    'current_rank',
+                    'current_league_points',
+                    'current_wins',
+                    'current_losses'
+                ]);
+            }])
+            ->get()
+            ->map(function ($participant) {
+                return [
+                    'id' => $participant->id,
+                    'display_name' => $participant->display_name,
+                    'riot_id' => $participant->riot_id,
+                    'summoner' => $participant->summoner ? [
+                        'id' => $participant->summoner->id,
+                        'level' => $participant->summoner->level,
+                        'profile_icon_id' => $participant->summoner->profile_icon_id,
+                        'current_tier' => $participant->summoner->current_tier,
+                        'current_rank' => $participant->summoner->current_rank,
+                        'current_league_points' => $participant->summoner->current_league_points,
+                        'current_wins' => $participant->summoner->current_wins,
+                        'current_losses' => $participant->summoner->current_losses,
+                        'current_win_rate' => $participant->summoner->current_win_rate,
+                        'current_formatted_rank' => $participant->summoner->current_formatted_rank,
+                        'current_total_games' => $participant->summoner->current_total_games,
+                    ] : null,
+                ];
+            });
+
+        // Get champion statistics
+        $championStats = $this->getChampionStatistics();
+
+        // Get rank progression data
+        $rankProgression = $this->getRankProgression();
+
+        // Get recent matches
+        $recentMatches = $this->getRecentMatches();
+
+        return Inertia::render('ClimbChallenge/Dashboard', [
+            'participants' => $participants,
+            'championStats' => $championStats,
+            'rankProgression' => $rankProgression,
+            'recentMatches' => $recentMatches,
+        ]);
+    }
+
+    private function getChampionStatistics()
+    {
+        return DB::table('league_match_summoners as lms')
+            ->join('summoner_tracks as st', 'lms.summoner_track_id', '=', 'st.id')
+            ->join('summoners as s', 'st.summoner_id', '=', 's.id')
+            ->join('participants as p', 's.participant_id', '=', 'p.id')
+            ->select([
+                'p.display_name',
+                'lms.champion',
+                DB::raw('COUNT(*) as games_played'),
+                DB::raw('SUM(CASE WHEN lms.result = "WIN" THEN 1 ELSE 0 END) as wins'),
+                DB::raw('SUM(CASE WHEN lms.result = "LOSS" THEN 1 ELSE 0 END) as losses'),
+                DB::raw('AVG(lms.kills) as avg_kills'),
+                DB::raw('AVG(lms.deaths) as avg_deaths'),
+                DB::raw('AVG(lms.assists) as avg_assists'),
+                DB::raw('ROUND(AVG((lms.kills + lms.assists) / CASE WHEN lms.deaths = 0 THEN 1 ELSE lms.deaths END), 2) as avg_kda'),
+                DB::raw('ROUND((SUM(CASE WHEN lms.result = "WIN" THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as win_rate')
+            ])
+            ->groupBy('p.display_name', 'lms.champion')
+            ->orderBy('games_played', 'desc')
+            ->get()
+            ->groupBy('display_name');
+    }
+
+    private function getRankProgression()
+    {
+        return DB::table('summoner_tracks as st')
+            ->join('summoners as s', 'st.summoner_id', '=', 's.id')
+            ->join('participants as p', 's.participant_id', '=', 'p.id')
+            ->select([
+                'p.display_name',
+                'st.tier',
+                'st.rank',
+                'st.league_points',
+                'st.wins',
+                'st.losses',
+                'st.created_at'
+            ])
+            ->orderBy('p.display_name')
+            ->orderBy('st.created_at')
+            ->get()
+            ->groupBy('display_name');
+    }
+
+    private function getRecentMatches(int $limit = 20)
+    {
+        return DB::table('league_match_summoners as lms')
+            ->join('league_matches as lm', 'lms.league_match_id', '=', 'lm.id')
+            ->join('summoner_tracks as st', 'lms.summoner_track_id', '=', 'st.id')
+            ->join('summoners as s', 'st.summoner_id', '=', 's.id')
+            ->join('participants as p', 's.participant_id', '=', 'p.id')
+            ->select([
+                'p.display_name',
+                'lms.champion',
+                'lms.kills',
+                'lms.deaths',
+                'lms.assists',
+                'lms.result',
+                'lm.created_at as match_date'
+            ])
+            ->orderBy('lm.created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->groupBy('match_date');
+    }
+}
