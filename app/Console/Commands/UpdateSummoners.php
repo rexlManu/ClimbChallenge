@@ -39,134 +39,143 @@ class UpdateSummoners extends Command
      */
     public function handle()
     {
-        Participant::query()->each(function (Participant $participant) {
-            $summonerDto = $this->riotService->getSummoner($participant->puuid);
+        Participant::query()
+            ->whereNotNull('puuid')
+            ->each(function (Participant $participant) {
+                $summonerDto = $this->riotService->getSummoner($participant->puuid);
 
-            if ($summonerDto === null) {
-                $this->error('Summoner not found for ' . $participant->display_name);
-                return;
-            }
-
-            $leagueEntries = $this->riotService->getLeagueEntries($participant->puuid);
-
-            if ($leagueEntries === null) {
-                $this->error('League entries not found for ' . $participant->display_name);
-                return;
-            }
-
-            $solo5v5LeagueEntry = collect($leagueEntries)->firstWhere('queueType', QueueType::RANKED_SOLO_5x5);
-
-            $summoner = Summoner::updateOrCreate(
-                ['participant_id' => $participant->id],
-                [
-                    'account_id' => $summonerDto->accountId,
-                    'level' => $summonerDto->summonerLevel,
-                    'profile_icon_id' => $summonerDto->profileIconId,
-                    'current_tier' => $solo5v5LeagueEntry->tier,
-                    'current_rank' => $solo5v5LeagueEntry->rank,
-                    'current_league_points' => $solo5v5LeagueEntry->leaguePoints,
-                    'current_wins' => $solo5v5LeagueEntry->wins,
-                    'current_losses' => $solo5v5LeagueEntry->losses,
-                ]
-            );
-
-            $lastTrack = $summoner->summonerTracks()->latest()->first();
-
-            if (
-                !$lastTrack ||
-                $lastTrack->tier !== $solo5v5LeagueEntry->tier ||
-                $lastTrack->rank !== $solo5v5LeagueEntry->rank ||
-                $lastTrack->league_points !== $solo5v5LeagueEntry->leaguePoints ||
-                $lastTrack->wins !== $solo5v5LeagueEntry->wins ||
-                $lastTrack->losses !== $solo5v5LeagueEntry->losses
-            ) {
-                $lastTrack = $summoner->summonerTracks()->create([
-                    'tier' => $solo5v5LeagueEntry->tier,
-                    'rank' => $solo5v5LeagueEntry->rank,
-                    'league_points' => $solo5v5LeagueEntry->leaguePoints,
-                    'wins' => $solo5v5LeagueEntry->wins,
-                    'losses' => $solo5v5LeagueEntry->losses,
-                ]);
-            }
-
-            $matchIds = $this->riotService->getMatchIds($participant->puuid, $summoner->last_match_fetched_at?->getTimestamp() ?? 0);
-            $lastMatchFetchedAt = now();
-
-            if ($matchIds === null) {
-                $this->error('Match ids not found for ' . $participant->display_name);
-                return;
-            }
-
-            if (count($matchIds) > 1) {
-                $this->warn('Found more than 1 new match for ' . $participant->display_name);
-            }
-
-            foreach ($matchIds as $matchId) {
-                $matchDto = $this->riotService->getMatch($matchId);
-                $timelineDto = $this->riotService->getMatchTimeline($matchId);
-
-                if ($matchDto === null || $timelineDto === null) {
-                    $this->error('Match not found for ' . $matchId);
-                    continue;
+                if ($summonerDto === null) {
+                    $this->error('Summoner not found for ' . $participant->display_name);
+                    return;
                 }
 
-                if ($matchDto->info->endOfGameResult !== 'GameComplete') {
-                    $this->warn('Match ' . $matchId . ' is not a complete game');
-                    Log::warning('Match ' . $matchId . ' is not a complete game', [
-                        'match_id' => $matchId,
-                        'end_of_game_result' => $matchDto->info->endOfGameResult,
+                $leagueEntries = $this->riotService->getLeagueEntries($participant->puuid);
+
+                if ($leagueEntries === null) {
+                    $this->error('League entries not found for ' . $participant->display_name);
+                    return;
+                }
+
+                $solo5v5LeagueEntry = collect($leagueEntries)->firstWhere('queueType', QueueType::RANKED_SOLO_5x5);
+
+                // Handle unranked players by setting default values
+                $tier = $solo5v5LeagueEntry?->tier ?? 'UNRANKED';
+                $rank = $solo5v5LeagueEntry?->rank ?? null;
+                $leaguePoints = $solo5v5LeagueEntry?->leaguePoints ?? 0;
+                $wins = $solo5v5LeagueEntry?->wins ?? 0;
+                $losses = $solo5v5LeagueEntry?->losses ?? 0;
+
+                $summoner = Summoner::updateOrCreate(
+                    ['participant_id' => $participant->id],
+                    [
+                        'account_id' => $summonerDto->accountId,
+                        'level' => $summonerDto->summonerLevel,
+                        'profile_icon_id' => $summonerDto->profileIconId,
+                        'current_tier' => $tier,
+                        'current_rank' => $rank,
+                        'current_league_points' => $leaguePoints,
+                        'current_wins' => $wins,
+                        'current_losses' => $losses,
+                    ]
+                );
+
+                $lastTrack = $summoner->summonerTracks()->latest()->first();
+
+                if (
+                    !$lastTrack ||
+                    $lastTrack->tier !== $tier ||
+                    $lastTrack->rank !== $rank ||
+                    $lastTrack->league_points !== $leaguePoints ||
+                    $lastTrack->wins !== $wins ||
+                    $lastTrack->losses !== $losses
+                ) {
+                    $lastTrack = $summoner->summonerTracks()->create([
+                        'tier' => $tier,
+                        'rank' => $rank,
+                        'league_points' => $leaguePoints,
+                        'wins' => $wins,
+                        'losses' => $losses,
                     ]);
-                    continue;
                 }
 
-                $match = LeagueMatch::updateOrCreate(
-                    ['match_id' => $matchId],
-                    [
-                        'match_data' => json_encode($matchDto),
-                        'timeline_data' => json_encode($timelineDto),
-                    ]
-                );
+                $matchIds = $this->riotService->getMatchIds($participant->puuid, $summoner->last_match_fetched_at?->getTimestamp() ?? 0);
+                $lastMatchFetchedAt = now();
 
-                // Find the participant in the match data by PUUID
-                /** @var ParticipantDto $participantData */
-                $participantData = collect($matchDto->info->participants)
-                    ->firstWhere('puuid', $participant->puuid);
-
-                if (!$participantData) {
-                    $this->error("Participant {$participant->display_name} not found in match {$matchId}");
-                    continue;
+                if ($matchIds === null) {
+                    $this->error('Match ids not found for ' . $participant->display_name);
+                    return;
                 }
 
-                if ($participantData->gameEndedInEarlySurrender) {
-                    $result = LeagueMatchResult::DRAW;
-                } else if ($participantData->win) {
-                    $result = LeagueMatchResult::WIN;
-                } else {
-                    $result = LeagueMatchResult::LOSS;
+                if (count($matchIds) > 1) {
+                    $this->warn('Found more than 1 new match for ' . $participant->display_name);
                 }
 
-                // Create or update the relationship between the match and summoner track with participant data
-                $leagueMatchSummoner = LeagueMatchSummoner::updateOrCreate(
-                    [
-                        'league_match_id' => $match->id,
-                        'summoner_track_id' => $lastTrack->id,
-                    ],
-                    [
-                        'kills' => $participantData->kills,
-                        'deaths' => $participantData->deaths,
-                        'assists' => $participantData->assists,
-                        'champion' => $participantData->championName,
-                        'result' => $result,
-                    ]
-                );
+                foreach ($matchIds as $matchId) {
+                    $matchDto = $this->riotService->getMatch($matchId);
+                    $timelineDto = $this->riotService->getMatchTimeline($matchId);
 
-                $this->info("Linked match {$matchId} to summoner track {$lastTrack->id} for {$participant->display_name} with K/D/A: {$participantData->kills}/{$participantData->deaths}/{$participantData->assists}");
-            }
+                    if ($matchDto === null || $timelineDto === null) {
+                        $this->error('Match not found for ' . $matchId);
+                        continue;
+                    }
 
-            // Update the last match fetched timestamp
-            $summoner->update(['last_match_fetched_at' => $lastMatchFetchedAt]);
+                    if ($matchDto->info->endOfGameResult !== 'GameComplete') {
+                        $this->warn('Match ' . $matchId . ' is not a complete game');
+                        Log::warning('Match ' . $matchId . ' is not a complete game', [
+                            'match_id' => $matchId,
+                            'end_of_game_result' => $matchDto->info->endOfGameResult,
+                        ]);
+                        continue;
+                    }
 
-            $this->info('Updated summoner for ' . $participant->display_name);
-        });
+                    $match = LeagueMatch::updateOrCreate(
+                        ['match_id' => $matchId],
+                        [
+                            'match_data' => json_encode($matchDto),
+                            'timeline_data' => json_encode($timelineDto),
+                        ]
+                    );
+
+                    // Find the participant in the match data by PUUID
+                    /** @var ParticipantDto $participantData */
+                    $participantData = collect($matchDto->info->participants)
+                        ->firstWhere('puuid', $participant->puuid);
+
+                    if (!$participantData) {
+                        $this->error("Participant {$participant->display_name} not found in match {$matchId}");
+                        continue;
+                    }
+
+                    if ($participantData->gameEndedInEarlySurrender) {
+                        $result = LeagueMatchResult::DRAW;
+                    } else if ($participantData->win) {
+                        $result = LeagueMatchResult::WIN;
+                    } else {
+                        $result = LeagueMatchResult::LOSS;
+                    }
+
+                    // Create or update the relationship between the match and summoner track with participant data
+                    $leagueMatchSummoner = LeagueMatchSummoner::updateOrCreate(
+                        [
+                            'league_match_id' => $match->id,
+                            'summoner_track_id' => $lastTrack->id,
+                        ],
+                        [
+                            'kills' => $participantData->kills,
+                            'deaths' => $participantData->deaths,
+                            'assists' => $participantData->assists,
+                            'champion' => $participantData->championName,
+                            'result' => $result,
+                        ]
+                    );
+
+                    $this->info("Linked match {$matchId} to summoner track {$lastTrack->id} for {$participant->display_name} with K/D/A: {$participantData->kills}/{$participantData->deaths}/{$participantData->assists}");
+                }
+
+                // Update the last match fetched timestamp
+                $summoner->update(['last_match_fetched_at' => $lastMatchFetchedAt]);
+
+                $this->info('Updated summoner for ' . $participant->display_name);
+            });
     }
 }
