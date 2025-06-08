@@ -5,6 +5,10 @@ alwaysApply: true
 ---
 # ClimbChallenge
 
+This is a league of legends tracking site for a climb challenge who reaches the highest rank.
+
+## Stack
+
 A laravel 12 app with inertia.js, react.js, typescript, Tailwind CSS 4 and shadcn.
 
 - Run commands inside ddev
