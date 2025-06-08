@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Head } from '@inertiajs/react';
+import { BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
 
 interface SummonerData {
     id: number;
@@ -121,6 +122,11 @@ export default function Dashboard({ participants, championStats, rankProgression
         return bValue - aValue; // Higher rank first
     });
 
+    // Calculate total net LP across all participants
+    const totalNetLP = participants.reduce((sum, participant) => {
+        return sum + (participant.summoner?.net_lp_change || 0);
+    }, 0);
+
     return (
         <>
             <Head title="Climb Challenge Dashboard" />
@@ -129,6 +135,31 @@ export default function Dashboard({ participants, championStats, rankProgression
                     <div>
                         <h1 className="text-3xl font-bold">Climb Challenge Dashboard</h1>
                         <p className="text-muted-foreground">Track your friends' League of Legends climb progress</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 rounded-lg border bg-card p-3">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                                <span className="text-sm font-medium text-muted-foreground">Total Net LP</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                {totalNetLP > 0 ? (
+                                    <TrendingUp className="h-4 w-4 text-green-600" />
+                                ) : totalNetLP < 0 ? (
+                                    <TrendingDown className="h-4 w-4 text-red-600" />
+                                ) : (
+                                    <BarChart3 className="h-4 w-4 text-gray-500" />
+                                )}
+                                <span
+                                    className={`text-lg font-bold ${
+                                        totalNetLP > 0 ? 'text-green-600' : totalNetLP < 0 ? 'text-red-600' : 'text-gray-500'
+                                    }`}
+                                >
+                                    {totalNetLP > 0 ? '+' : ''}
+                                    {totalNetLP}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
