@@ -181,6 +181,27 @@ class UpdateSummoners extends Command
                         continue;
                     }
 
+                    // Check if gameName or tagLine has changed and update if necessary
+                    $needsUpdate = false;
+                    $updates = [];
+
+                    if (!empty($participantData->riotIdGameName) && $participant->gameName !== $participantData->riotIdGameName) {
+                        $updates['gameName'] = $participantData->riotIdGameName;
+                        $needsUpdate = true;
+                        $this->info("Updating gameName for {$participant->display_name}: {$participant->gameName} -> {$participantData->riotIdGameName}");
+                    }
+
+                    if (!empty($participantData->riotIdTagline) && $participant->tagLine !== $participantData->riotIdTagline) {
+                        $updates['tagLine'] = $participantData->riotIdTagline;
+                        $needsUpdate = true;
+                        $this->info("Updating tagLine for {$participant->display_name}: {$participant->tagLine} -> {$participantData->riotIdTagline}");
+                    }
+
+                    if ($needsUpdate) {
+                        $participant->update($updates);
+                        $this->info("Updated Riot ID for {$participant->display_name} to {$participant->fresh()->riot_id}");
+                    }
+
                     if ($participantData->gameEndedInEarlySurrender) {
                         $result = LeagueMatchResult::DRAW;
                     } else if ($participantData->win) {
