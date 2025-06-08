@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', [ClimbChallengeController::class, 'index'])->name('climb-challenge.dashboard');
+Route::get('/climb-challenge/hourly-progression', [ClimbChallengeController::class, 'getHourlyProgression'])->name('climb-challenge.hourly-progression');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {

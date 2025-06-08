@@ -48,8 +48,9 @@ interface ChampionStat {
 }
 
 interface RankProgressionData {
-    chartData: Array<Record<string, string | number | null>>;
+    dailyChartData: Array<Record<string, string | number | null>>;
     players: string[];
+    availableDates: Array<{ value: string; label: string }>;
 }
 
 interface RecentMatch {

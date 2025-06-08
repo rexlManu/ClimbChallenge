@@ -161,7 +161,7 @@ class ClimbChallengeController extends Controller
             ->orderBy('st.created_at')
             ->get();
 
-        // Get all unique dates
+        // Get all unique dates for daily view
         $allDates = $rawData->map(function ($item) {
             return \Carbon\Carbon::parse($item->created_at)->format('Y-m-d');
         })->unique()->sort()->values();
@@ -169,37 +169,31 @@ class ClimbChallengeController extends Controller
         // Get all unique players
         $allPlayers = $rawData->pluck('display_name')->unique()->sort()->values();
 
-        // Convert rank to numeric value for charting
+        // Get available dates for date picker
+        $availableDates = $allDates->map(function ($date) {
+            return [
+                'value' => $date,
+                'label' => \Carbon\Carbon::parse($date)->format('M j, Y')
+            ];
+        });
+
+        // Daily chart data
+        $dailyChartData = $this->getDailyChartData($rawData, $allDates, $allPlayers);
+
+        return [
+            'dailyChartData' => $dailyChartData->values(),
+            'players' => $allPlayers,
+            'availableDates' => $availableDates->values(),
+        ];
+    }
+
+    private function getDailyChartData($rawData, $allDates, $allPlayers)
+    {
         $getRankValue = function ($tier, $rank, $lp) {
-            $tierValues = [
-                'UNRANKED' => -400,
-                'IRON' => 0,
-                'BRONZE' => 400,
-                'SILVER' => 800,
-                'GOLD' => 1200,
-                'PLATINUM' => 1600,
-                'EMERALD' => 2000,
-                'DIAMOND' => 2400,
-                'MASTER' => 2800,
-                'GRANDMASTER' => 3200,
-                'CHALLENGER' => 3600,
-            ];
-
-            $rankValues = [
-                'IV' => 0,
-                'III' => 100,
-                'II' => 200,
-                'I' => 300
-            ];
-
-            $tierValue = $tierValues[strtoupper($tier)] ?? -400;
-            $rankValue = $rankValues[$rank] ?? 0;
-
-            return $tierValue + $rankValue + $lp;
+            return $this->getRankValue($tier, $rank, $lp);
         };
 
-        // Format data for Recharts
-        $chartData = $allDates->map(function ($date) use ($rawData, $allPlayers, $getRankValue) {
+        return $allDates->map(function ($date) use ($rawData, $allPlayers, $getRankValue) {
             $dateData = ['date' => $date];
 
             foreach ($allPlayers as $player) {
@@ -226,11 +220,87 @@ class ClimbChallengeController extends Controller
 
             return $dateData;
         });
+    }
 
-        return [
+    public function getHourlyProgression(Request $request)
+    {
+        $date = $request->get('date', now()->format('Y-m-d'));
+        
+        $rawData = DB::table('summoner_tracks as st')
+            ->join('summoners as s', 'st.summoner_id', '=', 's.id')
+            ->join('participants as p', 's.participant_id', '=', 'p.id')
+            ->select([
+                'p.display_name',
+                'st.tier',
+                'st.rank',
+                'st.league_points',
+                'st.wins',
+                'st.losses',
+                'st.created_at'
+            ])
+            ->whereDate('st.created_at', $date)
+            ->orderBy('st.created_at')
+            ->get();
+
+        // Get all unique hours for the selected date
+        $allHours = collect();
+        for ($hour = 0; $hour < 24; $hour++) {
+            $allHours->push(sprintf('%02d:00', $hour));
+        }
+
+        // Get all unique players
+        $allPlayers = $rawData->pluck('display_name')->unique()->sort()->values();
+
+        $getRankValue = function ($tier, $rank, $lp) {
+            return $this->getRankValue($tier, $rank, $lp);
+        };
+
+        // Format data for hourly chart
+        $chartData = $allHours->map(function ($hour) use ($rawData, $allPlayers, $getRankValue, $date) {
+            $hourData = ['time' => $hour];
+            $targetDateTime = $date . ' ' . $hour;
+
+            foreach ($allPlayers as $player) {
+                // Find the latest entry for this player within this hour
+                $playerData = $rawData->where('display_name', $player)
+                    ->where(function ($item) use ($targetDateTime) {
+                        $itemHour = \Carbon\Carbon::parse($item->created_at)->format('H:i');
+                        $targetHour = \Carbon\Carbon::parse($targetDateTime)->format('H:i');
+                        return $itemHour <= $targetHour;
+                    })
+                    ->sortByDesc('created_at')
+                    ->first();
+
+                if ($playerData) {
+                    $hourData[$player] = $getRankValue($playerData->tier, $playerData->rank, $playerData->league_points);
+                } else {
+                    // Find the last known value before this time
+                    $lastKnown = DB::table('summoner_tracks as st')
+                        ->join('summoners as s', 'st.summoner_id', '=', 's.id')
+                        ->join('participants as p', 's.participant_id', '=', 'p.id')
+                        ->select([
+                            'p.display_name',
+                            'st.tier',
+                            'st.rank',
+                            'st.league_points',
+                            'st.created_at'
+                        ])
+                        ->where('p.display_name', $player)
+                        ->where('st.created_at', '<', $targetDateTime)
+                        ->orderBy('st.created_at', 'desc')
+                        ->first();
+
+                    $hourData[$player] = $lastKnown ? $getRankValue($lastKnown->tier, $lastKnown->rank, $lastKnown->league_points) : null;
+                }
+            }
+
+            return $hourData;
+        });
+
+        return response()->json([
             'chartData' => $chartData->values(),
             'players' => $allPlayers,
-        ];
+        ]);
     }
 
     private function getRecentMatches(int $limit = 20)
