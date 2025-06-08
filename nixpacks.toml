@@ -208,3 +208,15 @@ autorestart=true
 stderr_logfile=/var/log/worker-inertia-ssr.log
 stdout_logfile=/var/log/worker-inertia-ssr.log
 '''
+
+"worker-scheduler.conf" = '''
+[program:worker-scheduler]
+process_name=%(program_name)s_%(process_num)02d
+command=bash -c 'exec php /app/artisan schedule:work'
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/worker-scheduler.log
+stdout_logfile=/var/log/worker-scheduler.log
+numprocs=1
+startsecs=0
+'''
