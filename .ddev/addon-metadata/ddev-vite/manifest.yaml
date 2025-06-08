@@ -1,0 +1,8 @@
+name: ddev-vite
+repository: tyler36/ddev-vite
+version: "0.1"
+install_date: "2025-06-08T11:25:29+02:00"
+project_files:
+    - config.vite.yaml
+global_files: []
+removal_actions: []
