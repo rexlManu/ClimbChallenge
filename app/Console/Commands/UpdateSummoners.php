@@ -79,6 +79,11 @@ class UpdateSummoners extends Command
                     ]
                 );
 
+                // Check and update peak rank if current rank is higher
+                if ($summoner->updatePeakRankIfHigher()) {
+                    $this->info("New peak rank achieved for {$participant->display_name}: {$summoner->peak_formatted_rank} ({$summoner->peak_league_points} LP)");
+                }
+
                 $lastTrack = $summoner->summonerTracks()->latest()->first();
 
                 // Calculate LP change if there's a previous track

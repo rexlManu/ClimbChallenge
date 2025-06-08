@@ -83,6 +83,10 @@ class ClimbChallengeSeeder extends Seeder
                 'current_league_points' => $faker->numberBetween(0, 100),
                 'current_wins' => $wins,
                 'current_losses' => $losses,
+                'peak_tier' => $faker->randomElement([$tier, $tiers[min(count($tiers) - 1, array_search($tier, $tiers) + $faker->numberBetween(0, 2))]]),
+                'peak_rank' => $faker->randomElement($ranks),
+                'peak_league_points' => $faker->numberBetween(50, 100),
+                'peak_achieved_at' => $faker->dateTimeBetween('-30 days', 'now'),
             ]);
 
             $createdSummoners[] = $summoner;

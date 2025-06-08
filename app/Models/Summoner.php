@@ -20,6 +20,10 @@ class Summoner extends Model
         'current_wins',
         'current_losses',
         'last_match_fetched_at',
+        'peak_tier',
+        'peak_rank',
+        'peak_league_points',
+        'peak_achieved_at',
     ];
 
     protected $casts = [
@@ -28,6 +32,8 @@ class Summoner extends Model
         'current_wins' => 'integer',
         'current_losses' => 'integer',
         'last_match_fetched_at' => 'datetime',
+        'peak_league_points' => 'integer',
+        'peak_achieved_at' => 'datetime',
     ];
 
     /**
@@ -107,5 +113,104 @@ class Summoner extends Model
     public function getCurrentTotalGamesAttribute(): int
     {
         return $this->current_wins + $this->current_losses;
+    }
+
+    /**
+     * Get the peak formatted rank string.
+     */
+    public function getPeakFormattedRankAttribute(): ?string
+    {
+        if (!$this->peak_tier) {
+            return null;
+        }
+
+        if ($this->peak_tier === 'UNRANKED') {
+            return 'Unranked';
+        }
+
+        $tier = ucfirst(strtolower($this->peak_tier));
+        $rank = $this->peak_rank;
+
+        // For Master, Grandmaster, and Challenger, don't show rank
+        if (in_array($this->peak_tier, ['MASTER', 'GRANDMASTER', 'CHALLENGER'])) {
+            return $tier;
+        }
+
+        return trim($tier . ' ' . $rank);
+    }
+
+    /**
+     * Check if current rank is higher than peak and update if so.
+     */
+    public function updatePeakRankIfHigher(): bool
+    {
+        if ($this->isCurrentRankHigherThanPeak()) {
+            $this->peak_tier = $this->current_tier;
+            $this->peak_rank = $this->current_rank;
+            $this->peak_league_points = $this->current_league_points;
+            $this->peak_achieved_at = now();
+            $this->save();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if current rank is higher than the recorded peak.
+     */
+    public function isCurrentRankHigherThanPeak(): bool
+    {
+        // If no peak is recorded, current rank is always higher
+        if (is_null($this->peak_tier) || is_null($this->peak_league_points)) {
+            return true;
+        }
+
+        // Compare tier rankings
+        $tierRankings = [
+            'IRON' => 1,
+            'BRONZE' => 2,
+            'SILVER' => 3,
+            'GOLD' => 4,
+            'PLATINUM' => 5,
+            'EMERALD' => 6,
+            'DIAMOND' => 7,
+            'MASTER' => 8,
+            'GRANDMASTER' => 9,
+            'CHALLENGER' => 10,
+        ];
+
+        $currentTierRank = $tierRankings[$this->current_tier] ?? 0;
+        $peakTierRank = $tierRankings[$this->peak_tier] ?? 0;
+
+        // If current tier is higher
+        if ($currentTierRank > $peakTierRank) {
+            return true;
+        }
+
+        // If current tier is lower
+        if ($currentTierRank < $peakTierRank) {
+            return false;
+        }
+
+        // Same tier - compare by league points for Master+
+        if (in_array($this->current_tier, ['MASTER', 'GRANDMASTER', 'CHALLENGER'])) {
+            return $this->current_league_points > $this->peak_league_points;
+        }
+
+        // Same tier - compare by rank (IV < III < II < I) then by LP
+        $rankValues = ['IV' => 1, 'III' => 2, 'II' => 3, 'I' => 4];
+        $currentRankValue = $rankValues[$this->current_rank] ?? 0;
+        $peakRankValue = $rankValues[$this->peak_rank] ?? 0;
+
+        if ($currentRankValue > $peakRankValue) {
+            return true;
+        }
+
+        if ($currentRankValue < $peakRankValue) {
+            return false;
+        }
+
+        // Same tier and rank - compare by LP
+        return $this->current_league_points > $this->peak_league_points;
     }
 }

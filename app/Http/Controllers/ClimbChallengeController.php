@@ -28,7 +28,11 @@ class ClimbChallengeController extends Controller
                     'current_rank',
                     'current_league_points',
                     'current_wins',
-                    'current_losses'
+                    'current_losses',
+                    'peak_tier',
+                    'peak_rank',
+                    'peak_league_points',
+                    'peak_achieved_at'
                 ]);
             }])
             ->get();
@@ -56,6 +60,11 @@ class ClimbChallengeController extends Controller
                     'current_win_rate' => $participant->summoner->current_win_rate,
                     'current_formatted_rank' => $participant->summoner->current_formatted_rank,
                     'current_total_games' => $participant->summoner->current_total_games,
+                    'peak_tier' => $participant->summoner->peak_tier,
+                    'peak_rank' => $participant->summoner->peak_rank,
+                    'peak_league_points' => $participant->summoner->peak_league_points,
+                    'peak_achieved_at' => $participant->summoner->peak_achieved_at,
+                    'peak_formatted_rank' => $participant->summoner->peak_formatted_rank,
                     'total_lp_gained' => $stats['total_lp_gained'] ?? 0,
                     'total_lp_lost' => $stats['total_lp_lost'] ?? 0,
                     'net_lp_change' => $stats['net_lp_change'] ?? 0,
