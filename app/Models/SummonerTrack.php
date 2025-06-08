@@ -13,12 +13,18 @@ class SummonerTrack extends Model
         'tier',
         'rank',
         'league_points',
+        'lp_change',
+        'lp_change_type',
+        'lp_change_reason',
+        'is_dodge',
         'wins',
         'losses',
     ];
 
     protected $casts = [
         'league_points' => 'integer',
+        'lp_change' => 'integer',
+        'is_dodge' => 'boolean',
         'wins' => 'integer',
         'losses' => 'integer',
     ];

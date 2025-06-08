@@ -31,27 +31,38 @@ class ClimbChallengeController extends Controller
                     'current_losses'
                 ]);
             }])
-            ->get()
-            ->map(function ($participant) {
-                return [
-                    'id' => $participant->id,
-                    'display_name' => $participant->display_name,
-                    'riot_id' => $participant->riot_id,
-                    'summoner' => $participant->summoner ? [
-                        'id' => $participant->summoner->id,
-                        'level' => $participant->summoner->level,
-                        'profile_icon_id' => $participant->summoner->profile_icon_id,
-                        'current_tier' => $participant->summoner->current_tier,
-                        'current_rank' => $participant->summoner->current_rank,
-                        'current_league_points' => $participant->summoner->current_league_points,
-                        'current_wins' => $participant->summoner->current_wins,
-                        'current_losses' => $participant->summoner->current_losses,
-                        'current_win_rate' => $participant->summoner->current_win_rate,
-                        'current_formatted_rank' => $participant->summoner->current_formatted_rank,
-                        'current_total_games' => $participant->summoner->current_total_games,
-                    ] : null,
-                ];
-            });
+            ->get();
+
+        // Bulk calculate LP statistics for all summoners in a single query for optimal performance
+        $lpStatistics = $this->getBulkLpStatistics($participants);
+
+        $participants = $participants->map(function ($participant) use ($lpStatistics) {
+            $summonerId = $participant->summoner?->id;
+            $stats = $lpStatistics[$summonerId] ?? null;
+
+            return [
+                'id' => $participant->id,
+                'display_name' => $participant->display_name,
+                'riot_id' => $participant->riot_id,
+                'summoner' => $participant->summoner ? [
+                    'id' => $participant->summoner->id,
+                    'level' => $participant->summoner->level,
+                    'profile_icon_id' => $participant->summoner->profile_icon_id,
+                    'current_tier' => $participant->summoner->current_tier,
+                    'current_rank' => $participant->summoner->current_rank,
+                    'current_league_points' => $participant->summoner->current_league_points,
+                    'current_wins' => $participant->summoner->current_wins,
+                    'current_losses' => $participant->summoner->current_losses,
+                    'current_win_rate' => $participant->summoner->current_win_rate,
+                    'current_formatted_rank' => $participant->summoner->current_formatted_rank,
+                    'current_total_games' => $participant->summoner->current_total_games,
+                    'total_lp_gained' => $stats['total_lp_gained'] ?? 0,
+                    'total_lp_lost' => $stats['total_lp_lost'] ?? 0,
+                    'net_lp_change' => $stats['net_lp_change'] ?? 0,
+                    'total_dodges' => $stats['total_dodges'] ?? 0,
+                ] : null,
+            ];
+        });
 
         // Get champion statistics
         $championStats = $this->getChampionStatistics();
@@ -68,6 +79,45 @@ class ClimbChallengeController extends Controller
             'rankProgression' => $rankProgression,
             'recentMatches' => $recentMatches,
         ]);
+    }
+
+    private function getBulkLpStatistics($participants)
+    {
+        $summonerIds = $participants->filter(function ($participant) {
+            return $participant->summoner !== null;
+        })->pluck('summoner.id')->toArray();
+
+        if (empty($summonerIds)) {
+            return [];
+        }
+
+        $placeholders = str_repeat('?,', count($summonerIds) - 1) . '?';
+        
+        $lpData = DB::select("
+            SELECT 
+                st.summoner_id,
+                SUM(CASE WHEN st.lp_change_type = 'gain' THEN st.lp_change ELSE 0 END) as total_gained,
+                SUM(CASE WHEN st.lp_change_type = 'loss' THEN ABS(st.lp_change) ELSE 0 END) as total_lost,
+                SUM(CASE WHEN st.is_dodge = 1 THEN 1 ELSE 0 END) as total_dodges
+            FROM summoner_tracks st
+            WHERE st.summoner_id IN ($placeholders) AND st.lp_change IS NOT NULL
+            GROUP BY st.summoner_id
+        ", $summonerIds);
+
+        $statistics = [];
+        foreach ($lpData as $data) {
+            $totalGained = $data->total_gained ?? 0;
+            $totalLost = $data->total_lost ?? 0;
+            
+            $statistics[$data->summoner_id] = [
+                'total_lp_gained' => $totalGained,
+                'total_lp_lost' => $totalLost,
+                'net_lp_change' => $totalGained - $totalLost,
+                'total_dodges' => $data->total_dodges ?? 0,
+            ];
+        }
+
+        return $statistics;
     }
 
     private function getChampionStatistics()
@@ -203,5 +253,34 @@ class ClimbChallengeController extends Controller
             ->limit($limit)
             ->get()
             ->groupBy('match_date');
+    }
+
+    private function getRankValue($tier, $rank, $lp)
+    {
+        $tierValues = [
+            'UNRANKED' => -400,
+            'IRON' => 0,
+            'BRONZE' => 400,
+            'SILVER' => 800,
+            'GOLD' => 1200,
+            'PLATINUM' => 1600,
+            'EMERALD' => 2000,
+            'DIAMOND' => 2400,
+            'MASTER' => 2800,
+            'GRANDMASTER' => 3200,
+            'CHALLENGER' => 3600,
+        ];
+
+        $rankValues = [
+            'IV' => 0,
+            'III' => 100,
+            'II' => 200,
+            'I' => 300
+        ];
+
+        $tierValue = $tierValues[strtoupper($tier)] ?? -400;
+        $rankValue = $rankValues[$rank] ?? 0;
+
+        return $tierValue + $rankValue + $lp;
     }
 }

@@ -1,14 +1,13 @@
-import { Head } from '@inertiajs/react';
+import ChampionStatsTable from '@/components/ClimbChallenge/ChampionStatsTable';
+import RankProgressionChart from '@/components/ClimbChallenge/RankProgressionChart';
+import RecentMatchesList from '@/components/ClimbChallenge/RecentMatchesList';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import RankProgressionChart from '@/components/ClimbChallenge/RankProgressionChart';
-import ChampionStatsTable from '@/components/ClimbChallenge/ChampionStatsTable';
-import RecentMatchesList from '@/components/ClimbChallenge/RecentMatchesList';
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Head } from '@inertiajs/react';
 
 interface SummonerData {
     id: number;
@@ -22,6 +21,10 @@ interface SummonerData {
     current_win_rate: number;
     current_formatted_rank: string;
     current_total_games: number;
+    total_lp_gained: number;
+    total_lp_lost: number;
+    net_lp_change: number;
+    total_dodges: number;
 }
 
 interface Participant {
@@ -66,43 +69,46 @@ interface DashboardProps {
 
 const getTierColor = (tier: string): string => {
     const tierColors: Record<string, string> = {
-        'UNRANKED': 'bg-gray-600',
-        'IRON': 'bg-gray-500',
-        'BRONZE': 'bg-amber-600',
-        'SILVER': 'bg-gray-400',
-        'GOLD': 'bg-yellow-500',
-        'PLATINUM': 'bg-teal-500',
-        'EMERALD': 'bg-emerald-500',
-        'DIAMOND': 'bg-blue-500',
-        'MASTER': 'bg-purple-600',
-        'GRANDMASTER': 'bg-red-600',
-        'CHALLENGER': 'bg-orange-500',
+        UNRANKED: 'bg-gray-600',
+        IRON: 'bg-gray-500',
+        BRONZE: 'bg-amber-600',
+        SILVER: 'bg-gray-400',
+        GOLD: 'bg-yellow-500',
+        PLATINUM: 'bg-teal-500',
+        EMERALD: 'bg-emerald-500',
+        DIAMOND: 'bg-blue-500',
+        MASTER: 'bg-purple-600',
+        GRANDMASTER: 'bg-red-600',
+        CHALLENGER: 'bg-orange-500',
     };
     return tierColors[tier?.toUpperCase()] || 'bg-gray-600';
 };
 
 const getRankValue = (tier: string, rank: string, lp: number): number => {
     const tierValues: Record<string, number> = {
-        'UNRANKED': -400,
-        'IRON': 0,
-        'BRONZE': 400,
-        'SILVER': 800,
-        'GOLD': 1200,
-        'PLATINUM': 1600,
-        'EMERALD': 2000,
-        'DIAMOND': 2400,
-        'MASTER': 2800,
-        'GRANDMASTER': 3200,
-        'CHALLENGER': 3600,
+        UNRANKED: -400,
+        IRON: 0,
+        BRONZE: 400,
+        SILVER: 800,
+        GOLD: 1200,
+        PLATINUM: 1600,
+        EMERALD: 2000,
+        DIAMOND: 2400,
+        MASTER: 2800,
+        GRANDMASTER: 3200,
+        CHALLENGER: 3600,
     };
-    
+
     const rankValues: Record<string, number> = {
-        'IV': 0, 'III': 100, 'II': 200, 'I': 300
+        IV: 0,
+        III: 100,
+        II: 200,
+        I: 300,
     };
-    
+
     const tierValue = tierValues[tier?.toUpperCase()] || -400;
     const rankValue = rankValues[rank] || 0;
-    
+
     return tierValue + rankValue + lp;
 };
 
@@ -118,7 +124,7 @@ export default function Dashboard({ participants, championStats, rankProgression
     return (
         <>
             <Head title="Climb Challenge Dashboard" />
-            <div className="container mx-auto p-6 space-y-6">
+            <div className="container mx-auto space-y-6 p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold">Climb Challenge Dashboard</h1>
@@ -137,18 +143,20 @@ export default function Dashboard({ participants, championStats, rankProgression
                     <TabsContent value="leaderboard" className="space-y-6">
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {sortedParticipants.slice(0, 3).map((participant, index) => (
-                                <Card key={participant.id} className={index === 0 ? "ring-2 ring-yellow-500" : ""}>
+                                <Card key={participant.id} className={index === 0 ? 'ring-2 ring-yellow-500' : ''}>
                                     <CardHeader className="flex flex-row items-center gap-4">
                                         <div className="relative">
                                             <Avatar className="h-12 w-12">
-                                                <AvatarImage 
+                                                <AvatarImage
                                                     src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
                                                     alt="Profile icon"
                                                 />
                                                 <AvatarFallback>{participant.display_name[0]}</AvatarFallback>
                                             </Avatar>
                                             {index < 3 && (
-                                                <Badge className={`absolute -top-2 -right-2 ${index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-amber-600'}`}>
+                                                <Badge
+                                                    className={`absolute -top-2 -right-2 ${index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-amber-600'}`}
+                                                >
                                                     #{index + 1}
                                                 </Badge>
                                             )}
@@ -175,14 +183,28 @@ export default function Dashboard({ participants, championStats, rankProgression
                                                     <span className="text-sm">Win Rate</span>
                                                     <span className="font-medium">{participant.summoner.current_win_rate}%</span>
                                                 </div>
-                                                <Progress 
-                                                    value={participant.summoner.current_win_rate} 
-                                                    className="w-full"
-                                                />
+                                                <Progress value={participant.summoner.current_win_rate} className="w-full" />
                                                 <div className="flex justify-between text-xs text-muted-foreground">
                                                     <span>{participant.summoner.current_wins}W</span>
                                                     <span>{participant.summoner.current_losses}L</span>
                                                 </div>
+                                                <div className="mt-2 flex items-center justify-between border-t pt-2">
+                                                    <span className="text-xs">Net LP</span>
+                                                    <span
+                                                        className={`text-xs font-medium ${participant.summoner.net_lp_change > 0 ? 'text-green-600' : participant.summoner.net_lp_change < 0 ? 'text-red-600' : 'text-gray-500'}`}
+                                                    >
+                                                        {participant.summoner.net_lp_change > 0 ? '+' : ''}
+                                                        {participant.summoner.net_lp_change}
+                                                    </span>
+                                                </div>
+                                                {participant.summoner.total_dodges > 0 && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs text-orange-600">Dodges</span>
+                                                        <span className="text-xs font-medium text-orange-600">
+                                                            {participant.summoner.total_dodges}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <p className="text-muted-foreground">No data available</p>
@@ -205,6 +227,7 @@ export default function Dashboard({ participants, championStats, rankProgression
                                             <TableHead>Player</TableHead>
                                             <TableHead>Rank</TableHead>
                                             <TableHead>LP</TableHead>
+                                            <TableHead>Net LP</TableHead>
                                             <TableHead>Games</TableHead>
                                             <TableHead>Win Rate</TableHead>
                                             <TableHead>Level</TableHead>
@@ -214,14 +237,12 @@ export default function Dashboard({ participants, championStats, rankProgression
                                         {sortedParticipants.map((participant, index) => (
                                             <TableRow key={participant.id}>
                                                 <TableCell>
-                                                    <Badge variant={index < 3 ? "default" : "secondary"}>
-                                                        {index + 1}
-                                                    </Badge>
+                                                    <Badge variant={index < 3 ? 'default' : 'secondary'}>{index + 1}</Badge>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-3">
                                                         <Avatar className="h-8 w-8">
-                                                            <AvatarImage 
+                                                            <AvatarImage
                                                                 src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
                                                                 alt="Profile icon"
                                                             />
@@ -242,24 +263,50 @@ export default function Dashboard({ participants, championStats, rankProgression
                                                         <span className="text-muted-foreground">-</span>
                                                     )}
                                                 </TableCell>
+                                                <TableCell>{participant.summoner?.current_league_points || '-'}</TableCell>
                                                 <TableCell>
-                                                    {participant.summoner?.current_league_points || '-'}
+                                                    <div className="flex items-center gap-1">
+                                                        <span
+                                                            className={`font-medium ${participant.summoner?.net_lp_change && participant.summoner.net_lp_change > 0 ? 'text-green-600' : participant.summoner?.net_lp_change && participant.summoner.net_lp_change < 0 ? 'text-red-600' : 'text-gray-500'}`}
+                                                        >
+                                                            {participant.summoner?.net_lp_change !== undefined ? (
+                                                                <>
+                                                                    {participant.summoner.net_lp_change > 0 ? '+' : ''}
+                                                                    {participant.summoner.net_lp_change}
+                                                                </>
+                                                            ) : (
+                                                                '-'
+                                                            )}
+                                                        </span>
+                                                        {participant.summoner?.total_dodges && participant.summoner.total_dodges > 0 && (
+                                                            <span
+                                                                className="text-xs text-orange-600"
+                                                                title={`${participant.summoner.total_dodges} dodges`}
+                                                            >
+                                                                🚫
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
-                                                <TableCell>
-                                                    {participant.summoner?.current_total_games || '-'}
-                                                </TableCell>
+                                                <TableCell>{participant.summoner?.current_total_games || '-'}</TableCell>
                                                 <TableCell>
                                                     {participant.summoner ? (
-                                                        <span className={participant.summoner.current_win_rate >= 60 ? 'text-green-600' : participant.summoner.current_win_rate >= 50 ? 'text-yellow-600' : 'text-red-600'}>
+                                                        <span
+                                                            className={
+                                                                participant.summoner.current_win_rate >= 60
+                                                                    ? 'text-green-600'
+                                                                    : participant.summoner.current_win_rate >= 50
+                                                                      ? 'text-yellow-600'
+                                                                      : 'text-red-600'
+                                                            }
+                                                        >
                                                             {participant.summoner.current_win_rate}%
                                                         </span>
                                                     ) : (
                                                         '-'
                                                     )}
                                                 </TableCell>
-                                                <TableCell>
-                                                    {participant.summoner?.level || '-'}
-                                                </TableCell>
+                                                <TableCell>{participant.summoner?.level || '-'}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -283,4 +330,4 @@ export default function Dashboard({ participants, championStats, rankProgression
             </div>
         </>
     );
-} 
+}

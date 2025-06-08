@@ -81,6 +81,37 @@ class UpdateSummoners extends Command
 
                 $lastTrack = $summoner->summonerTracks()->latest()->first();
 
+                // Calculate LP change if there's a previous track
+                $lpChange = null;
+                $lpChangeType = null;
+                $lpChangeReason = null;
+                $isDodge = false;
+
+                if ($lastTrack) {
+                    $lpChange = $leaguePoints - $lastTrack->league_points;
+                    
+                    if ($lpChange > 0) {
+                        $lpChangeType = 'gain';
+                        $lpChangeReason = 'match_win';
+                    } elseif ($lpChange < 0) {
+                        $lpChangeType = 'loss';
+                        
+                        // Detect potential dodges
+                        // Dodges are typically -5LP (first dodge) or -15LP (subsequent dodges)
+                        // and happen without a match being played
+                        if (($lpChange === -5 || $lpChange === -15) && 
+                            $lastTrack->wins === $wins && $lastTrack->losses === $losses) {
+                            $lpChangeReason = 'dodge';
+                            $isDodge = true;
+                        } else {
+                            $lpChangeReason = 'match_loss';
+                        }
+                    } else {
+                        $lpChangeType = 'no_change';
+                        $lpChangeReason = 'unknown';
+                    }
+                }
+
                 if (
                     !$lastTrack ||
                     $lastTrack->tier !== $tier ||
@@ -93,6 +124,10 @@ class UpdateSummoners extends Command
                         'tier' => $tier,
                         'rank' => $rank,
                         'league_points' => $leaguePoints,
+                        'lp_change' => $lpChange,
+                        'lp_change_type' => $lpChangeType,
+                        'lp_change_reason' => $lpChangeReason,
+                        'is_dodge' => $isDodge,
                         'wins' => $wins,
                         'losses' => $losses,
                     ]);
