@@ -60,6 +60,17 @@ class RiotService
         return AccountDto::fromArray($account);
     }
 
+    public function getAccountByPuuid(string $puuid): AccountDto|null
+    {
+        $account = $this->sendRequest('account/v1/accounts/by-puuid/' . $puuid);
+
+        if ($account === null) {
+            return null;
+        }
+
+        return AccountDto::fromArray($account);
+    }
+
     public function getSummoner(string $puuid): SummonerDto|null
     {
         $summoner = $this->sendRequest('summoner/v4/summoners/by-puuid/' . $puuid);
