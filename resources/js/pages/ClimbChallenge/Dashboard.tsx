@@ -59,6 +59,9 @@ interface RecentMatch {
     deaths: number;
     assists: number;
     result: string;
+    lp_change: number | null;
+    lp_change_type: string | null;
+    lp_change_reason: string | null;
 }
 
 interface DashboardProps {

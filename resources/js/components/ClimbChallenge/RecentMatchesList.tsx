@@ -11,6 +11,9 @@ interface RecentMatch {
     deaths: number;
     assists: number;
     result: string;
+    lp_change: number | null;
+    lp_change_type: string | null;
+    lp_change_reason: string | null;
 }
 
 interface RecentMatchesListProps {
@@ -94,6 +97,29 @@ export default function RecentMatchesList({ recentMatches }: RecentMatchesListPr
         return Number(((kills + assists) / deaths).toFixed(2));
     };
 
+    const getLPBadge = (lpChange: number | null, lpChangeType: string | null) => {
+        if (lpChange === null || lpChange === 0) {
+            return (
+                <Badge variant="secondary" className="bg-slate-600 text-slate-200">
+                    +0
+                </Badge>
+            );
+        }
+
+        if (lpChangeType === 'gain') {
+            return <Badge className="bg-emerald-600 font-semibold text-white">+{lpChange}</Badge>;
+        } else if (lpChangeType === 'loss') {
+            return <Badge className="bg-red-600 font-semibold text-white">-{Math.abs(lpChange)}</Badge>;
+        } else {
+            return (
+                <Badge variant="secondary" className="bg-slate-600 text-slate-200">
+                    {lpChange > 0 ? '+' : ''}
+                    {lpChange}
+                </Badge>
+            );
+        }
+    };
+
     return (
         <div className="space-y-6">
             <Card className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
@@ -114,6 +140,7 @@ export default function RecentMatchesList({ recentMatches }: RecentMatchesListPr
                                     <TableHead className="text-slate-300">Result</TableHead>
                                     <TableHead className="text-slate-300">KDA</TableHead>
                                     <TableHead className="hidden text-slate-300 sm:table-cell">Score</TableHead>
+                                    <TableHead className="hidden text-slate-300 sm:table-cell">LP</TableHead>
                                     <TableHead className="hidden text-slate-300 md:table-cell">Date</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -150,6 +177,9 @@ export default function RecentMatchesList({ recentMatches }: RecentMatchesListPr
                                             </TableCell>
                                             <TableCell className="hidden sm:table-cell">
                                                 <Badge className={`font-semibold ${getKDABadgeStyle(kda)}`}>{kda}</Badge>
+                                            </TableCell>
+                                            <TableCell className="hidden sm:table-cell">
+                                                {getLPBadge(match.lp_change, match.lp_change_type)}
                                             </TableCell>
                                             <TableCell className="hidden text-sm text-slate-400 md:table-cell">
                                                 {new Date(match.match_date).toLocaleDateString()}

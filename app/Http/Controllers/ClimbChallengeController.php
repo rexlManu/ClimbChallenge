@@ -348,6 +348,9 @@ class ClimbChallengeController extends Controller
                 'lms.deaths',
                 'lms.assists',
                 'lms.result',
+                'st.lp_change',
+                'st.lp_change_type',
+                'st.lp_change_reason',
                 'lm.created_at as match_date'
             ])
             ->orderBy('lm.created_at', 'desc')
