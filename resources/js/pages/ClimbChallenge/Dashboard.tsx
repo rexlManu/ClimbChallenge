@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Head } from '@inertiajs/react';
-import { BarChart3, Crown, Medal, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { Crown, Medal, Trophy } from 'lucide-react';
 
 interface SummonerData {
     id: number;
@@ -24,7 +24,6 @@ interface SummonerData {
     current_total_games: number;
     total_lp_gained: number;
     total_lp_lost: number;
-    net_lp_change: number;
     total_dodges: number;
 }
 
@@ -147,11 +146,6 @@ export default function Dashboard({ participants, championStats, rankProgression
         return bValue - aValue; // Higher rank first
     });
 
-    // Calculate total net LP across all participants
-    const totalNetLP = participants.reduce((sum, participant) => {
-        return sum + (participant.summoner?.net_lp_change || 0);
-    }, 0);
-
     return (
         <>
             <Head title="Climb Challenge Dashboard" />
@@ -169,37 +163,6 @@ export default function Dashboard({ participants, championStats, rankProgression
                                 Climb Challenge Dashboard
                             </h1>
                             <p className="text-sm text-slate-300 sm:text-base">Track your friends' League of Legends climb progress</p>
-                        </div>
-
-                        {/* Total Net LP Card */}
-                        <div className="flex justify-center lg:justify-end">
-                            <Card className="border-slate-700 bg-gradient-to-r from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
-                                <CardContent className="p-4 sm:p-6">
-                                    <div className="flex items-center gap-3 sm:gap-4">
-                                        <div className="flex items-center gap-2">
-                                            <BarChart3 className="h-4 w-4 text-slate-400 sm:h-5 sm:w-5" />
-                                            <span className="text-xs font-medium text-slate-400 sm:text-sm">Total Net LP</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {totalNetLP > 0 ? (
-                                                <TrendingUp className="h-4 w-4 text-emerald-400 sm:h-5 sm:w-5" />
-                                            ) : totalNetLP < 0 ? (
-                                                <TrendingDown className="h-4 w-4 text-red-400 sm:h-5 sm:w-5" />
-                                            ) : (
-                                                <BarChart3 className="h-4 w-4 text-slate-400 sm:h-5 sm:w-5" />
-                                            )}
-                                            <span
-                                                className={`text-lg font-bold sm:text-xl ${
-                                                    totalNetLP > 0 ? 'text-emerald-400' : totalNetLP < 0 ? 'text-red-400' : 'text-slate-400'
-                                                }`}
-                                            >
-                                                {totalNetLP > 0 ? '+' : ''}
-                                                {totalNetLP}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
                         </div>
                     </div>
 
@@ -297,31 +260,16 @@ export default function Dashboard({ participants, championStats, rankProgression
                                                             <span className="text-red-400">{participant.summoner.current_losses}L</span>
                                                         </div>
                                                     </div>
-                                                    <div className="border-t border-slate-700 pt-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs text-slate-400">Net LP</span>
-                                                            <span
-                                                                className={`text-sm font-medium ${
-                                                                    participant.summoner.net_lp_change > 0
-                                                                        ? 'text-emerald-400'
-                                                                        : participant.summoner.net_lp_change < 0
-                                                                          ? 'text-red-400'
-                                                                          : 'text-slate-400'
-                                                                }`}
-                                                            >
-                                                                {participant.summoner.net_lp_change > 0 ? '+' : ''}
-                                                                {participant.summoner.net_lp_change}
-                                                            </span>
-                                                        </div>
-                                                        {participant.summoner.total_dodges > 0 && (
-                                                            <div className="mt-2 flex items-center justify-between">
+                                                    {participant.summoner.total_dodges > 0 && (
+                                                        <div className="border-t border-slate-700 pt-3">
+                                                            <div className="flex items-center justify-between">
                                                                 <span className="text-xs text-orange-400">Dodges</span>
                                                                 <Badge variant="outline" className="border-orange-400 text-orange-400">
                                                                     {participant.summoner.total_dodges}
                                                                 </Badge>
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <p className="py-4 text-center text-slate-400">No data available</p>
@@ -346,7 +294,6 @@ export default function Dashboard({ participants, championStats, rankProgression
                                                     <TableHead className="text-slate-300">Player</TableHead>
                                                     <TableHead className="text-slate-300">Rank</TableHead>
                                                     <TableHead className="text-slate-300">LP</TableHead>
-                                                    <TableHead className="text-slate-300">Net LP</TableHead>
                                                     <TableHead className="hidden text-slate-300 sm:table-cell">Games</TableHead>
                                                     <TableHead className="text-slate-300">Win Rate</TableHead>
                                                     <TableHead className="hidden text-slate-300 md:table-cell">Level</TableHead>
@@ -408,37 +355,6 @@ export default function Dashboard({ participants, championStats, rankProgression
                                                         </TableCell>
                                                         <TableCell className="text-white">
                                                             {participant.summoner?.current_league_points || '-'}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="flex items-center gap-1">
-                                                                <span
-                                                                    className={`font-medium ${
-                                                                        participant.summoner?.net_lp_change && participant.summoner.net_lp_change > 0
-                                                                            ? 'text-emerald-400'
-                                                                            : participant.summoner?.net_lp_change &&
-                                                                                participant.summoner.net_lp_change < 0
-                                                                              ? 'text-red-400'
-                                                                              : 'text-slate-400'
-                                                                    }`}
-                                                                >
-                                                                    {participant.summoner?.net_lp_change !== undefined ? (
-                                                                        <>
-                                                                            {participant.summoner.net_lp_change > 0 ? '+' : ''}
-                                                                            {participant.summoner.net_lp_change}
-                                                                        </>
-                                                                    ) : (
-                                                                        '-'
-                                                                    )}
-                                                                </span>
-                                                                {participant.summoner?.total_dodges && participant.summoner.total_dodges > 0 && (
-                                                                    <span
-                                                                        className="text-orange-400"
-                                                                        title={`${participant.summoner.total_dodges} dodges`}
-                                                                    >
-                                                                        🚫
-                                                                    </span>
-                                                                )}
-                                                            </div>
                                                         </TableCell>
                                                         <TableCell className="hidden text-white sm:table-cell">
                                                             {participant.summoner?.current_total_games || '-'}
