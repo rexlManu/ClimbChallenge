@@ -24,20 +24,17 @@ interface HourlyData {
     centerIndex?: number;
 }
 
-const getPlayerColor = (index: number): string => {
-    const colors = [
-        'hsl(var(--chart-1))',
-        'hsl(var(--chart-2))',
-        'hsl(var(--chart-3))',
-        'hsl(var(--chart-4))',
-        'hsl(var(--chart-5))',
-        '#60A5FA', // blue-400
-        '#34D399', // emerald-400
-        '#FBBF24', // amber-400
-        '#F87171', // red-400
-        '#A78BFA', // violet-400
-    ];
-    return colors[index % colors.length];
+const getPlayerColor = (playerName: string): string => {
+    // Generate a consistent color based on the player's name
+    const hash = playerName.split('').reduce((acc, char) => {
+        return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
+
+    // Convert hash to a hue value (0-360)
+    const hue = Math.abs(hash) % 360;
+
+    // Use high saturation and medium lightness for vibrant, readable colors
+    return `hsl(${hue}, 70%, 60%)`;
 };
 
 const formatRankValue = (value: number): string => {
@@ -156,7 +153,7 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
         return players.reduce((config, player, index) => {
             config[player] = {
                 label: player,
-                color: getPlayerColor(index),
+                color: getPlayerColor(player),
             };
             return config;
         }, {} as ChartConfig);
