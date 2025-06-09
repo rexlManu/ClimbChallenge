@@ -145,7 +145,34 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
     const [selectedDate, setSelectedDate] = React.useState<string>(availableDates[availableDates.length - 1]?.value || '');
     const [hourlyData, setHourlyData] = React.useState<HourlyData | null>(null);
     const [isLoadingHourly, setIsLoadingHourly] = React.useState(false);
+    const [hourlyDataError, setHourlyDataError] = React.useState<string | null>(null);
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+    // Reset selectedDate when availableDates changes (e.g., from auto-update)
+    React.useEffect(() => {
+        const latestDate = availableDates[availableDates.length - 1]?.value || '';
+        // Only update if current selectedDate is no longer valid or if we don't have a selectedDate
+        if (!selectedDate || !availableDates.some((date) => date.value === selectedDate)) {
+            setSelectedDate(latestDate);
+        }
+    }, [availableDates, selectedDate]);
+
+    // Clear hourly data when switching to daily view or when rankProgression data updates
+    React.useEffect(() => {
+        if (viewType === 'daily') {
+            setHourlyData(null);
+            setHourlyDataError(null);
+        }
+    }, [viewType]);
+
+    // Reset hourly data when the main rankProgression data changes (from auto-update)
+    React.useEffect(() => {
+        // Clear hourly data when the main data updates to ensure consistency
+        if (viewType === 'hourly') {
+            setHourlyData(null);
+            setHourlyDataError(null);
+        }
+    }, [rankProgression, viewType]);
 
     // Create chart config for all players
     const chartConfig: ChartConfig = React.useMemo(() => {
@@ -178,6 +205,7 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
     React.useEffect(() => {
         if (viewType === 'hourly' && selectedDate) {
             setIsLoadingHourly(true);
+            setHourlyDataError(null);
             const currentTime = new Date().toISOString();
             axios
                 .get('/climb-challenge/hourly-progression', {
@@ -187,10 +215,20 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                     },
                 })
                 .then((response) => {
-                    setHourlyData(response.data);
+                    // Validate response data structure
+                    if (response.data && Array.isArray(response.data.chartData) && Array.isArray(response.data.players)) {
+                        setHourlyData(response.data);
+                        setHourlyDataError(null);
+                    } else {
+                        console.error('Invalid hourly data structure:', response.data);
+                        setHourlyData(null);
+                        setHourlyDataError('Invalid data format received');
+                    }
                 })
                 .catch((error) => {
                     console.error('Failed to load hourly data:', error);
+                    setHourlyData(null);
+                    setHourlyDataError('Failed to load hourly data. Please try again.');
                 })
                 .finally(() => {
                     setIsLoadingHourly(false);
@@ -234,6 +272,24 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                             <div className="flex items-center gap-2">
                                 <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-400"></div>
                                 Loading hourly data...
+                            </div>
+                        ) : hourlyDataError ? (
+                            <div className="text-center">
+                                <div className="mb-2 text-red-400">{hourlyDataError}</div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setHourlyDataError(null);
+                                        // Trigger reload by toggling view
+                                        const currentDate = selectedDate;
+                                        setSelectedDate('');
+                                        setTimeout(() => setSelectedDate(currentDate), 0);
+                                    }}
+                                    className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                                >
+                                    Try Again
+                                </Button>
                             </div>
                         ) : (
                             'No progression data available'
