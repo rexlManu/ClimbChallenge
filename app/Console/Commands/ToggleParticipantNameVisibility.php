@@ -12,14 +12,14 @@ class ToggleParticipantNameVisibility extends Command
      *
      * @var string
      */
-    protected $signature = 'climb:toggle-name-visibility {action} {participant?}';
+    protected $signature = 'climb:toggle-riot-id-visibility {action} {participant?}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Toggle name visibility for participants. Actions: list, hide, show';
+    protected $description = 'Toggle Riot ID visibility for participants. Actions: list, hide, show';
 
     /**
      * Execute the console command.
@@ -42,9 +42,9 @@ class ToggleParticipantNameVisibility extends Command
             default:
                 $this->error('Invalid action. Use: list, hide, or show');
                 $this->info('Examples:');
-                $this->info('  php artisan climb:toggle-name-visibility list');
-                $this->info('  php artisan climb:toggle-name-visibility hide "Player Name"');
-                $this->info('  php artisan climb:toggle-name-visibility show "Player Name"');
+                $this->info('  php artisan climb:toggle-riot-id-visibility list');
+                $this->info('  php artisan climb:toggle-riot-id-visibility hide "Player Name"');
+                $this->info('  php artisan climb:toggle-riot-id-visibility show "Player Name"');
                 return Command::FAILURE;
         }
 
@@ -60,17 +60,17 @@ class ToggleParticipantNameVisibility extends Command
             return;
         }
 
-        $this->info('Participants and their name visibility status:');
+        $this->info('Participants and their Riot ID visibility status:');
         $this->newLine();
 
-        $headers = ['ID', 'Display Name', 'Riot ID', 'Hidden'];
+        $headers = ['ID', 'Display Name', 'Riot ID', 'Riot ID Hidden'];
         $rows = [];
 
         foreach ($participants as $participant) {
             $rows[] = [
                 $participant->id,
                 $participant->display_name,
-                $participant->riot_id,
+                $participant->hide_name ? 'Hidden#0000' : $participant->riot_id,
                 $participant->hide_name ? '✓' : '✗'
             ];
         }
@@ -103,13 +103,13 @@ class ToggleParticipantNameVisibility extends Command
         $participant->hide_name = $hideStatus;
         $participant->save();
 
-        $action = $hideStatus ? 'hidden' : 'shown';
-        $this->info("Participant '{$participant->display_name}' name is now {$action}.");
+        $action = $hideStatus ? 'hidden' : 'visible';
+        $this->info("Participant '{$participant->display_name}' Riot ID is now {$action}.");
         
         if ($hideStatus) {
-            $this->comment("They will appear as 'Hidden Player' in the dashboard and charts.");
+            $this->comment("Their Riot ID will appear as 'Hidden#0000' in the dashboard while keeping their display name '{$participant->display_name}' visible.");
         } else {
-            $this->comment("They will appear with their actual name '{$participant->display_name}'.");
+            $this->comment("Their Riot ID will appear as '{$participant->riot_id}' in the dashboard.");
         }
     }
 }

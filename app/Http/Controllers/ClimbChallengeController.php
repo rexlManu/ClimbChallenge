@@ -46,7 +46,7 @@ class ClimbChallengeController extends Controller
 
             return [
                 'id' => $participant->id,
-                'display_name' => $participant->displayed_name,
+                'display_name' => $participant->display_name,
                 'riot_id' => $participant->displayed_riot_id,
                 'hide_name' => $participant->hide_name,
                 'summoner' => $participant->summoner ? [
@@ -153,11 +153,10 @@ class ClimbChallengeController extends Controller
             ->orderBy('games_played', 'desc')
             ->get();
 
-        // Transform to use displayed names
+        // Keep display names but group them normally since we're not hiding display names
         return $results->map(function ($stat) {
-            $displayName = $stat->hide_name ? 'Hidden Player' : $stat->display_name;
             return (object) [
-                'display_name' => $displayName,
+                'display_name' => $stat->display_name,
                 'champion' => $stat->champion,
                 'games_played' => $stat->games_played,
                 'wins' => $stat->wins,
@@ -189,11 +188,8 @@ class ClimbChallengeController extends Controller
             ->orderBy('st.created_at')
             ->get();
 
-        // Transform to use displayed names
-        $rawData = $rawData->map(function ($item) {
-            $item->display_name = $item->hide_name ? 'Hidden Player' : $item->display_name;
-            return $item;
-        });
+        // Keep display names as they are since we're only hiding Riot IDs
+        // No transformation needed for display names
 
         // Get all unique dates for daily view
         $allDates = $rawData->map(function ($item) {
@@ -289,11 +285,8 @@ class ClimbChallengeController extends Controller
             ->orderBy('st.created_at')
             ->get();
 
-        // Transform to use displayed names
-        $rawData = $rawData->map(function ($item) {
-            $item->display_name = $item->hide_name ? 'Hidden Player' : $item->display_name;
-            return $item;
-        });
+        // Keep display names as they are since we're only hiding Riot IDs
+        // No transformation needed for display names
 
         // Generate hours from start to end time
         $allHours = collect();
@@ -347,13 +340,7 @@ class ClimbChallengeController extends Controller
                             'st.league_points',
                             'st.created_at'
                         ])
-                        ->where(function ($query) use ($player) {
-                            $query->where('p.display_name', $player)
-                                  ->orWhere(function ($subQuery) use ($player) {
-                                      $subQuery->where('p.hide_name', true)
-                                               ->where(DB::raw("CASE WHEN p.hide_name = 1 THEN 'Hidden Player' ELSE p.display_name END"), $player);
-                                  });
-                        })
+                        ->where('p.display_name', $player)
                         ->where('st.created_at', '<', $targetDateTime)
                         ->orderBy('st.created_at', 'desc')
                         ->first();
@@ -397,11 +384,8 @@ class ClimbChallengeController extends Controller
             ->limit($limit)
             ->get();
 
-        // Transform to use displayed names
-        $matches = $matches->map(function ($match) {
-            $match->display_name = $match->hide_name ? 'Hidden Player' : $match->display_name;
-            return $match;
-        });
+        // Keep display names as they are since we're only hiding Riot IDs
+        // No transformation needed for display names
 
         return $matches->groupBy('match_date');
     }
