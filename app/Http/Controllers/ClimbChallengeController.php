@@ -46,8 +46,9 @@ class ClimbChallengeController extends Controller
 
             return [
                 'id' => $participant->id,
-                'display_name' => $participant->display_name,
-                'riot_id' => $participant->riot_id,
+                'display_name' => $participant->displayed_name,
+                'riot_id' => $participant->displayed_riot_id,
+                'hide_name' => $participant->hide_name,
                 'summoner' => $participant->summoner ? [
                     'id' => $participant->summoner->id,
                     'level' => $participant->summoner->level,
@@ -131,12 +132,13 @@ class ClimbChallengeController extends Controller
 
     private function getChampionStatistics()
     {
-        return DB::table('league_match_summoners as lms')
+        $results = DB::table('league_match_summoners as lms')
             ->join('summoner_tracks as st', 'lms.summoner_track_id', '=', 'st.id')
             ->join('summoners as s', 'st.summoner_id', '=', 's.id')
             ->join('participants as p', 's.participant_id', '=', 'p.id')
             ->select([
                 'p.display_name',
+                'p.hide_name',
                 'lms.champion',
                 DB::raw('COUNT(*) as games_played'),
                 DB::raw('SUM(CASE WHEN lms.result = "WIN" THEN 1 ELSE 0 END) as wins'),
@@ -147,10 +149,26 @@ class ClimbChallengeController extends Controller
                 DB::raw('ROUND(AVG((lms.kills + lms.assists) / CASE WHEN lms.deaths = 0 THEN 1 ELSE lms.deaths END), 2) as avg_kda'),
                 DB::raw('ROUND((SUM(CASE WHEN lms.result = "WIN" THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as win_rate')
             ])
-            ->groupBy('p.display_name', 'lms.champion')
+            ->groupBy('p.display_name', 'p.hide_name', 'lms.champion')
             ->orderBy('games_played', 'desc')
-            ->get()
-            ->groupBy('display_name');
+            ->get();
+
+        // Transform to use displayed names
+        return $results->map(function ($stat) {
+            $displayName = $stat->hide_name ? 'Hidden Player' : $stat->display_name;
+            return (object) [
+                'display_name' => $displayName,
+                'champion' => $stat->champion,
+                'games_played' => $stat->games_played,
+                'wins' => $stat->wins,
+                'losses' => $stat->losses,
+                'avg_kills' => $stat->avg_kills,
+                'avg_deaths' => $stat->avg_deaths,
+                'avg_assists' => $stat->avg_assists,
+                'avg_kda' => $stat->avg_kda,
+                'win_rate' => $stat->win_rate,
+            ];
+        })->groupBy('display_name');
     }
 
     private function getRankProgression()
@@ -160,6 +178,7 @@ class ClimbChallengeController extends Controller
             ->join('participants as p', 's.participant_id', '=', 'p.id')
             ->select([
                 'p.display_name',
+                'p.hide_name',
                 'st.tier',
                 'st.rank',
                 'st.league_points',
@@ -169,6 +188,12 @@ class ClimbChallengeController extends Controller
             ])
             ->orderBy('st.created_at')
             ->get();
+
+        // Transform to use displayed names
+        $rawData = $rawData->map(function ($item) {
+            $item->display_name = $item->hide_name ? 'Hidden Player' : $item->display_name;
+            return $item;
+        });
 
         // Get all unique dates for daily view
         $allDates = $rawData->map(function ($item) {
@@ -252,6 +277,7 @@ class ClimbChallengeController extends Controller
             ->join('participants as p', 's.participant_id', '=', 'p.id')
             ->select([
                 'p.display_name',
+                'p.hide_name',
                 'st.tier',
                 'st.rank',
                 'st.league_points',
@@ -262,6 +288,12 @@ class ClimbChallengeController extends Controller
             ->whereBetween('st.created_at', [$startTime, $endTime])
             ->orderBy('st.created_at')
             ->get();
+
+        // Transform to use displayed names
+        $rawData = $rawData->map(function ($item) {
+            $item->display_name = $item->hide_name ? 'Hidden Player' : $item->display_name;
+            return $item;
+        });
 
         // Generate hours from start to end time
         $allHours = collect();
@@ -309,12 +341,19 @@ class ClimbChallengeController extends Controller
                         ->join('participants as p', 's.participant_id', '=', 'p.id')
                         ->select([
                             'p.display_name',
+                            'p.hide_name',
                             'st.tier',
                             'st.rank',
                             'st.league_points',
                             'st.created_at'
                         ])
-                        ->where('p.display_name', $player)
+                        ->where(function ($query) use ($player) {
+                            $query->where('p.display_name', $player)
+                                  ->orWhere(function ($subQuery) use ($player) {
+                                      $subQuery->where('p.hide_name', true)
+                                               ->where(DB::raw("CASE WHEN p.hide_name = 1 THEN 'Hidden Player' ELSE p.display_name END"), $player);
+                                  });
+                        })
                         ->where('st.created_at', '<', $targetDateTime)
                         ->orderBy('st.created_at', 'desc')
                         ->first();
@@ -336,13 +375,14 @@ class ClimbChallengeController extends Controller
 
     private function getRecentMatches(int $limit = 20)
     {
-        return DB::table('league_match_summoners as lms')
+        $matches = DB::table('league_match_summoners as lms')
             ->join('league_matches as lm', 'lms.league_match_id', '=', 'lm.id')
             ->join('summoner_tracks as st', 'lms.summoner_track_id', '=', 'st.id')
             ->join('summoners as s', 'st.summoner_id', '=', 's.id')
             ->join('participants as p', 's.participant_id', '=', 'p.id')
             ->select([
                 'p.display_name',
+                'p.hide_name',
                 'lms.champion',
                 'lms.kills',
                 'lms.deaths',
@@ -355,8 +395,15 @@ class ClimbChallengeController extends Controller
             ])
             ->orderBy('lm.created_at', 'desc')
             ->limit($limit)
-            ->get()
-            ->groupBy('match_date');
+            ->get();
+
+        // Transform to use displayed names
+        $matches = $matches->map(function ($match) {
+            $match->display_name = $match->hide_name ? 'Hidden Player' : $match->display_name;
+            return $match;
+        });
+
+        return $matches->groupBy('match_date');
     }
 
     private function getRankValue($tier, $rank, $lp)

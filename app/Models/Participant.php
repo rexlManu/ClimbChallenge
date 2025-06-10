@@ -12,11 +12,26 @@ class Participant extends Model
         'gameName',
         'tagLine',
         'puuid',
+        'hide_name',
+    ];
+
+    protected $casts = [
+        'hide_name' => 'boolean',
     ];
 
     public function getRiotIdAttribute(): string
     {
         return $this->gameName . '#' . $this->tagLine;
+    }
+
+    public function getDisplayedNameAttribute(): string
+    {
+        return $this->hide_name ? 'Hidden Player' : $this->display_name;
+    }
+
+    public function getDisplayedRiotIdAttribute(): string
+    {
+        return $this->hide_name ? 'Hidden#0000' : $this->riot_id;
     }
 
     /**

@@ -31,6 +31,7 @@ interface Participant {
     id: number;
     display_name: string;
     riot_id: string;
+    hide_name: boolean;
     summoner: SummonerData | null;
 }
 
