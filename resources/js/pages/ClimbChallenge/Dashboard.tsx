@@ -7,9 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAutoUpdate } from '@/hooks/use-auto-update';
 import { Head } from '@inertiajs/react';
-import { Crown, Medal, RefreshCw, Trophy, Wifi, WifiOff } from 'lucide-react';
+import { Crown, Medal, Trophy } from 'lucide-react';
 
 interface SummonerData {
     id: number;
@@ -70,7 +69,6 @@ interface DashboardProps {
     championStats: Record<string, ChampionStat[]>;
     rankProgression: RankProgressionData;
     recentMatches: Record<string, RecentMatch[]>;
-    lastUpdated: string;
 }
 
 const getTierColor = (tier: string): string => {
@@ -142,36 +140,14 @@ const getPodiumIcon = (position: number) => {
     return null;
 };
 
-export default function Dashboard({ participants, championStats, rankProgression, recentMatches, lastUpdated }: DashboardProps) {
-    // Initialize auto-update hook
-    const autoUpdate = useAutoUpdate({
-        initialData: {
-            participants,
-            championStats,
-            rankProgression,
-            recentMatches,
-            lastUpdated,
-        },
-        updateIntervalMs: 60000, // Check for updates every minute
-        enabled: true,
-    });
-
-    // Use data from auto-update hook instead of props directly
-    const currentData = autoUpdate.data;
-
+export default function Dashboard({ participants, championStats, rankProgression, recentMatches }: DashboardProps) {
     // Sort participants by rank
-    const sortedParticipants = [...currentData.participants].sort((a, b) => {
+    const sortedParticipants = [...participants].sort((a, b) => {
         if (!a.summoner || !b.summoner) return 0;
         const aValue = getRankValue(a.summoner.current_tier, a.summoner.current_rank, a.summoner.current_league_points);
         const bValue = getRankValue(b.summoner.current_tier, b.summoner.current_rank, b.summoner.current_league_points);
         return bValue - aValue; // Higher rank first
     });
-
-    // Format last update time for display
-    const formatLastUpdate = (timestamp: string) => {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
 
     return (
         <>
@@ -190,43 +166,6 @@ export default function Dashboard({ participants, championStats, rankProgression
                                 Climb Challenge Dashboard
                             </h1>
                             <p className="text-sm text-slate-300 sm:text-base">Track your friends' League of Legends climb progress</p>
-                        </div>
-
-                        {/* Auto-update status */}
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 rounded-lg bg-slate-800/50 px-3 py-2 backdrop-blur-sm">
-                                {autoUpdate.error ? (
-                                    <WifiOff className="h-4 w-4 text-red-400" />
-                                ) : autoUpdate.isChecking ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin text-blue-400" />
-                                ) : (
-                                    <Wifi className="h-4 w-4 text-green-400" />
-                                )}
-                                <div className="text-xs text-slate-300">
-                                    <div className="font-medium">
-                                        {autoUpdate.error
-                                            ? 'Connection Error'
-                                            : autoUpdate.isLoading
-                                              ? 'Updating...'
-                                              : autoUpdate.isChecking
-                                                ? 'Checking...'
-                                                : 'Live'}
-                                    </div>
-                                    {autoUpdate.lastChecked && !autoUpdate.error && (
-                                        <div className="text-slate-400">Last: {formatLastUpdate(autoUpdate.lastChecked.toISOString())}</div>
-                                    )}
-                                    {autoUpdate.error && <div className="text-xs text-red-400">Auto-update paused</div>}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={autoUpdate.forceUpdate}
-                                disabled={autoUpdate.isLoading || autoUpdate.isChecking}
-                                className="flex items-center gap-2 rounded-lg bg-blue-600/80 px-3 py-2 text-xs text-white backdrop-blur-sm transition-colors duration-150 hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <RefreshCw className={`h-3 w-3 ${autoUpdate.isLoading ? 'animate-spin' : ''}`} />
-                                Refresh
-                            </button>
                         </div>
                     </div>
 
@@ -249,239 +188,220 @@ export default function Dashboard({ participants, championStats, rankProgression
                             </TabsList>
                         </div>
 
-                        {/* Add loading overlay during updates */}
-                        <div className={`relative transition-opacity duration-300 ${autoUpdate.isLoading ? 'opacity-75' : 'opacity-100'}`}>
-                            {autoUpdate.isLoading && (
-                                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-900/20 backdrop-blur-sm">
-                                    <div className="flex items-center gap-2 rounded-lg bg-slate-800/90 px-4 py-2 shadow-lg">
-                                        <RefreshCw className="h-4 w-4 animate-spin text-blue-400" />
-                                        <span className="text-sm text-slate-300">Updating data...</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            <TabsContent value="leaderboard" className="space-y-6">
-                                {/* Top 3 Podium */}
-                                <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {sortedParticipants.slice(0, 3).map((participant, index) => (
-                                        <Card
-                                            key={participant.id}
-                                            className={`border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm ${index === 0 ? 'ring-2 shadow-yellow-400/20 ring-yellow-400/50' : ''} transition-shadow duration-200 hover:shadow-2xl`}
-                                        >
-                                            <CardHeader className="flex flex-row items-center gap-4 pb-3">
-                                                <div className="relative">
-                                                    <Avatar className="h-12 w-12 ring-2 ring-slate-600 sm:h-14 sm:w-14">
-                                                        <AvatarImage
-                                                            src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
-                                                            alt="Profile icon"
-                                                        />
-                                                        <AvatarFallback className="bg-slate-700 text-slate-200">
-                                                            {participant.display_name[0]}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    {index < 3 && (
-                                                        <div className="absolute -top-2 -right-2 flex items-center justify-center">
-                                                            {getPodiumIcon(index)}
-                                                            <Badge
-                                                                className={`ml-1 ${
-                                                                    index === 0
-                                                                        ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black'
-                                                                        : index === 1
-                                                                          ? 'bg-[#C0C0C0] text-black'
-                                                                          : 'bg-[#CD7F32] text-white'
-                                                                }`}
-                                                            >
-                                                                #{index + 1}
-                                                            </Badge>
+                        <TabsContent value="leaderboard" className="space-y-6">
+                            {/* Top 3 Podium */}
+                            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {sortedParticipants.slice(0, 3).map((participant, index) => (
+                                    <Card
+                                        key={participant.id}
+                                        className={`border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm ${index === 0 ? 'ring-2 shadow-yellow-400/20 ring-yellow-400/50' : ''} transition-shadow duration-200 hover:shadow-2xl`}
+                                    >
+                                        <CardHeader className="flex flex-row items-center gap-4 pb-3">
+                                            <div className="relative">
+                                                <Avatar className="h-12 w-12 ring-2 ring-slate-600 sm:h-14 sm:w-14">
+                                                    <AvatarImage
+                                                        src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
+                                                        alt="Profile icon"
+                                                    />
+                                                    <AvatarFallback className="bg-slate-700 text-slate-200">
+                                                        {participant.display_name[0]}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                {index < 3 && (
+                                                    <div className="absolute -top-2 -right-2 flex items-center justify-center">
+                                                        {getPodiumIcon(index)}
+                                                        <Badge
+                                                            className={`ml-1 ${
+                                                                index === 0
+                                                                    ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-black'
+                                                                    : index === 1
+                                                                      ? 'bg-[#C0C0C0] text-black'
+                                                                      : 'bg-[#CD7F32] text-white'
+                                                            }`}
+                                                        >
+                                                            #{index + 1}
+                                                        </Badge>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="truncate font-semibold text-white">{participant.display_name}</h3>
+                                                <p className="truncate text-sm text-slate-400">{participant.riot_id}</p>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            {participant.summoner ? (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-slate-300">Rank</span>
+                                                        <Badge className={`${getTierColor(participant.summoner.current_tier)} font-semibold`}>
+                                                            {participant.summoner.current_formatted_rank}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-slate-300">LP</span>
+                                                        <span className="font-medium text-white">{participant.summoner.current_league_points}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm text-slate-300">Win Rate</span>
+                                                        <span
+                                                            className={`font-medium ${
+                                                                participant.summoner.current_win_rate >= 60
+                                                                    ? 'text-emerald-400'
+                                                                    : participant.summoner.current_win_rate >= 50
+                                                                      ? 'text-yellow-400'
+                                                                      : 'text-red-400'
+                                                            }`}
+                                                        >
+                                                            {participant.summoner.current_win_rate}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Progress value={participant.summoner.current_win_rate} className="h-2 w-full bg-slate-700" />
+                                                        <div className="flex justify-between text-xs text-slate-400">
+                                                            <span className="text-emerald-400">{participant.summoner.current_wins}W</span>
+                                                            <span className="text-red-400">{participant.summoner.current_losses}L</span>
+                                                        </div>
+                                                    </div>
+                                                    {participant.summoner.total_dodges > 0 && (
+                                                        <div className="border-t border-slate-700 pt-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-xs text-orange-400">Dodges</span>
+                                                                <Badge variant="outline" className="border-orange-400 text-orange-400">
+                                                                    {participant.summoner.total_dodges}
+                                                                </Badge>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <h3 className="truncate font-semibold text-white">{participant.display_name}</h3>
-                                                    <p className="truncate text-sm text-slate-400">{participant.riot_id}</p>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="space-y-3">
-                                                {participant.summoner ? (
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-sm text-slate-300">Rank</span>
-                                                            <Badge className={`${getTierColor(participant.summoner.current_tier)} font-semibold`}>
-                                                                {participant.summoner.current_formatted_rank}
-                                                            </Badge>
-                                                        </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-sm text-slate-300">LP</span>
-                                                            <span className="font-medium text-white">
-                                                                {participant.summoner.current_league_points}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-sm text-slate-300">Win Rate</span>
-                                                            <span
-                                                                className={`font-medium ${
-                                                                    participant.summoner.current_win_rate >= 60
-                                                                        ? 'text-emerald-400'
-                                                                        : participant.summoner.current_win_rate >= 50
-                                                                          ? 'text-yellow-400'
-                                                                          : 'text-red-400'
-                                                                }`}
-                                                            >
-                                                                {participant.summoner.current_win_rate}%
-                                                            </span>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Progress
-                                                                value={participant.summoner.current_win_rate}
-                                                                className="h-2 w-full bg-slate-700"
-                                                            />
-                                                            <div className="flex justify-between text-xs text-slate-400">
-                                                                <span className="text-emerald-400">{participant.summoner.current_wins}W</span>
-                                                                <span className="text-red-400">{participant.summoner.current_losses}L</span>
+                                            ) : (
+                                                <p className="py-4 text-center text-slate-400">No data available</p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+
+                            {/* Full Leaderboard */}
+                            <Card className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
+                                <CardHeader>
+                                    <CardTitle className="text-white">Full Leaderboard</CardTitle>
+                                    <CardDescription className="text-slate-400">Complete ranking of all participants</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                                                    <TableHead className="w-12 text-slate-300">#</TableHead>
+                                                    <TableHead className="text-slate-300">Player</TableHead>
+                                                    <TableHead className="text-slate-300">Rank</TableHead>
+                                                    <TableHead className="text-slate-300">LP</TableHead>
+                                                    <TableHead className="hidden text-slate-300 sm:table-cell">Games</TableHead>
+                                                    <TableHead className="text-slate-300">Win Rate</TableHead>
+                                                    <TableHead className="hidden text-slate-300 md:table-cell">Level</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {sortedParticipants.map((participant, index) => (
+                                                    <TableRow
+                                                        key={participant.id}
+                                                        className="border-slate-700 transition-colors duration-150 hover:bg-slate-800/30"
+                                                    >
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-1">
+                                                                {getPodiumIcon(index)}
+                                                                <Badge
+                                                                    variant={index < 3 ? 'default' : 'secondary'}
+                                                                    className={
+                                                                        index < 3 ? 'bg-gradient-to-r from-slate-600 to-slate-700 text-white' : ''
+                                                                    }
+                                                                >
+                                                                    {index + 1}
+                                                                </Badge>
                                                             </div>
-                                                        </div>
-                                                        {participant.summoner.total_dodges > 0 && (
-                                                            <div className="border-t border-slate-700 pt-3">
-                                                                <div className="flex items-center justify-between">
-                                                                    <span className="text-xs text-orange-400">Dodges</span>
-                                                                    <Badge variant="outline" className="border-orange-400 text-orange-400">
-                                                                        {participant.summoner.total_dodges}
-                                                                    </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar className="h-8 w-8 ring-1 ring-slate-600">
+                                                                    <AvatarImage
+                                                                        src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
+                                                                        alt="Profile icon"
+                                                                    />
+                                                                    <AvatarFallback className="bg-slate-700 text-slate-200">
+                                                                        {participant.display_name[0]}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="min-w-0">
+                                                                    <div className="truncate font-medium text-white">{participant.display_name}</div>
+                                                                    <a
+                                                                        href={`https://dpm.lol/${participant.riot_id.replace('#', '-')}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="cursor-pointer truncate text-sm text-blue-400 transition-colors duration-150 hover:text-blue-300 hover:underline sm:hidden md:block"
+                                                                    >
+                                                                        {participant.riot_id}
+                                                                    </a>
                                                                 </div>
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <p className="py-4 text-center text-slate-400">No data available</p>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-
-                                {/* Full Leaderboard */}
-                                <Card className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
-                                    <CardHeader>
-                                        <CardTitle className="text-white">Full Leaderboard</CardTitle>
-                                        <CardDescription className="text-slate-400">Complete ranking of all participants</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="overflow-x-auto">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow className="border-slate-700 hover:bg-slate-800/50">
-                                                        <TableHead className="w-12 text-slate-300">#</TableHead>
-                                                        <TableHead className="text-slate-300">Player</TableHead>
-                                                        <TableHead className="text-slate-300">Rank</TableHead>
-                                                        <TableHead className="text-slate-300">LP</TableHead>
-                                                        <TableHead className="hidden text-slate-300 sm:table-cell">Games</TableHead>
-                                                        <TableHead className="text-slate-300">Win Rate</TableHead>
-                                                        <TableHead className="hidden text-slate-300 md:table-cell">Level</TableHead>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {participant.summoner ? (
+                                                                <Badge
+                                                                    className={`${getTierColor(participant.summoner.current_tier)} font-semibold whitespace-nowrap`}
+                                                                >
+                                                                    {participant.summoner.current_formatted_rank}
+                                                                </Badge>
+                                                            ) : (
+                                                                <span className="text-slate-500">-</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-white">
+                                                            {participant.summoner?.current_league_points || '-'}
+                                                        </TableCell>
+                                                        <TableCell className="hidden text-white sm:table-cell">
+                                                            {participant.summoner?.current_total_games || '-'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {participant.summoner ? (
+                                                                <span
+                                                                    className={`font-medium ${
+                                                                        participant.summoner.current_win_rate >= 60
+                                                                            ? 'text-emerald-400'
+                                                                            : participant.summoner.current_win_rate >= 50
+                                                                              ? 'text-yellow-400'
+                                                                              : 'text-red-400'
+                                                                    }`}
+                                                                >
+                                                                    {participant.summoner.current_win_rate}%
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-slate-500">-</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="hidden text-white md:table-cell">
+                                                            {participant.summoner?.level || '-'}
+                                                        </TableCell>
                                                     </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {sortedParticipants.map((participant, index) => (
-                                                        <TableRow
-                                                            key={participant.id}
-                                                            className="border-slate-700 transition-colors duration-150 hover:bg-slate-800/30"
-                                                        >
-                                                            <TableCell>
-                                                                <div className="flex items-center gap-1">
-                                                                    {getPodiumIcon(index)}
-                                                                    <Badge
-                                                                        variant={index < 3 ? 'default' : 'secondary'}
-                                                                        className={
-                                                                            index < 3 ? 'bg-gradient-to-r from-slate-600 to-slate-700 text-white' : ''
-                                                                        }
-                                                                    >
-                                                                        {index + 1}
-                                                                    </Badge>
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <div className="flex items-center gap-3">
-                                                                    <Avatar className="h-8 w-8 ring-1 ring-slate-600">
-                                                                        <AvatarImage
-                                                                            src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
-                                                                            alt="Profile icon"
-                                                                        />
-                                                                        <AvatarFallback className="bg-slate-700 text-slate-200">
-                                                                            {participant.display_name[0]}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    <div className="min-w-0">
-                                                                        <div className="truncate font-medium text-white">
-                                                                            {participant.display_name}
-                                                                        </div>
-                                                                        <a
-                                                                            href={`https://dpm.lol/${participant.riot_id.replace('#', '-')}`}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="cursor-pointer truncate text-sm text-blue-400 transition-colors duration-150 hover:text-blue-300 hover:underline sm:hidden md:block"
-                                                                        >
-                                                                            {participant.riot_id}
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                {participant.summoner ? (
-                                                                    <Badge
-                                                                        className={`${getTierColor(participant.summoner.current_tier)} font-semibold whitespace-nowrap`}
-                                                                    >
-                                                                        {participant.summoner.current_formatted_rank}
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <span className="text-slate-500">-</span>
-                                                                )}
-                                                            </TableCell>
-                                                            <TableCell className="text-white">
-                                                                {participant.summoner?.current_league_points || '-'}
-                                                            </TableCell>
-                                                            <TableCell className="hidden text-white sm:table-cell">
-                                                                {participant.summoner?.current_total_games || '-'}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                {participant.summoner ? (
-                                                                    <span
-                                                                        className={`font-medium ${
-                                                                            participant.summoner.current_win_rate >= 60
-                                                                                ? 'text-emerald-400'
-                                                                                : participant.summoner.current_win_rate >= 50
-                                                                                  ? 'text-yellow-400'
-                                                                                  : 'text-red-400'
-                                                                        }`}
-                                                                    >
-                                                                        {participant.summoner.current_win_rate}%
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-slate-500">-</span>
-                                                                )}
-                                                            </TableCell>
-                                                            <TableCell className="hidden text-white md:table-cell">
-                                                                {participant.summoner?.level || '-'}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
 
-                            <TabsContent value="champions">
-                                <ChampionStatsTable championStats={currentData.championStats} />
-                            </TabsContent>
+                        <TabsContent value="champions">
+                            <ChampionStatsTable championStats={championStats} />
+                        </TabsContent>
 
-                            <TabsContent value="progression">
-                                <RankProgressionChart rankProgression={currentData.rankProgression} />
-                            </TabsContent>
+                        <TabsContent value="progression">
+                            <RankProgressionChart rankProgression={rankProgression} />
+                        </TabsContent>
 
-                            <TabsContent value="matches">
-                                <RecentMatchesList recentMatches={currentData.recentMatches} />
-                            </TabsContent>
-                        </div>
+                        <TabsContent value="matches">
+                            <RecentMatchesList recentMatches={recentMatches} />
+                        </TabsContent>
                     </Tabs>
                 </div>
             </div>
