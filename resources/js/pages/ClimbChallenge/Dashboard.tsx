@@ -144,7 +144,7 @@ const getPodiumIcon = (position: number) => {
 
 export default function Dashboard({ participants, championStats, rankProgression, recentMatches }: DashboardProps) {
     // Countdown Timer Logic
-    const challengeEnd = new Date('2024-06-19T20:00:00+02:00'); // 19th June 8pm CEST
+    const challengeEnd = new Date('2025-06-19T20:00:00+02:00'); // 19th June 2025 8pm CEST
     const [timeLeft, setTimeLeft] = useState<string>('');
     const [ended, setEnded] = useState<boolean>(false);
 
@@ -199,7 +199,7 @@ export default function Dashboard({ participants, championStats, rankProgression
                     <div className="flex justify-center">
                         <div className="rounded-lg bg-slate-800/80 px-6 py-3 text-center shadow-md ring-1 ring-slate-700">
                             <span className="text-lg font-semibold text-white">{ended ? 'Challenge Ended!' : `Challenge ends in: ${timeLeft}`}</span>
-                            <div className="mt-1 text-xs text-slate-400">Ends: 19th June, 8:00pm CEST</div>
+                            <div className="mt-1 text-xs text-slate-400">Ends: 19th June 2025, 8:00pm CEST</div>
                         </div>
                     </div>
 
