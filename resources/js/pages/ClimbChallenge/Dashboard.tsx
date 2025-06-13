@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Head } from '@inertiajs/react';
 import { Crown, Medal, Trophy } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SummonerData {
     id: number;
@@ -142,6 +143,31 @@ const getPodiumIcon = (position: number) => {
 };
 
 export default function Dashboard({ participants, championStats, rankProgression, recentMatches }: DashboardProps) {
+    // Countdown Timer Logic
+    const challengeEnd = new Date('2024-06-19T20:00:00+02:00'); // 19th June 8pm CEST
+    const [timeLeft, setTimeLeft] = useState<string>('');
+    const [ended, setEnded] = useState<boolean>(false);
+
+    useEffect(() => {
+        const updateTimer = () => {
+            const now = new Date();
+            const diff = challengeEnd.getTime() - now.getTime();
+            if (diff <= 0) {
+                setEnded(true);
+                setTimeLeft('');
+                return;
+            }
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+        };
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Sort participants by rank
     const sortedParticipants = [...participants].sort((a, b) => {
         if (!a.summoner || !b.summoner) return 0;
@@ -167,6 +193,13 @@ export default function Dashboard({ participants, championStats, rankProgression
                                 Climb Challenge Dashboard
                             </h1>
                             <p className="text-sm text-slate-300 sm:text-base">Track your friends' League of Legends climb progress</p>
+                        </div>
+                    </div>
+                    {/* Countdown Timer */}
+                    <div className="flex justify-center">
+                        <div className="rounded-lg bg-slate-800/80 px-6 py-3 text-center shadow-md ring-1 ring-slate-700">
+                            <span className="text-lg font-semibold text-white">{ended ? 'Challenge Ended!' : `Challenge ends in: ${timeLeft}`}</span>
+                            <div className="mt-1 text-xs text-slate-400">Ends: 19th June, 8:00pm CEST</div>
                         </div>
                     </div>
 
