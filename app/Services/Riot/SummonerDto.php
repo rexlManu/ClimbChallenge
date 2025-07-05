@@ -5,7 +5,6 @@ namespace App\Services\Riot;
 class SummonerDto
 {
     public function __construct(
-        public string $accountId,
         public int $profileIconId,
         public int $revisionDate,
         public string $id,
@@ -16,7 +15,6 @@ class SummonerDto
     public static function fromArray(array $data): self
     {
         return new self(
-            accountId: $data['accountId'],
             profileIconId: $data['profileIconId'],
             revisionDate: $data['revisionDate'],
             id: $data['id'],

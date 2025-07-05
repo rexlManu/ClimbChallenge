@@ -68,7 +68,7 @@ class UpdateSummoners extends Command
                 $summoner = Summoner::updateOrCreate(
                     ['participant_id' => $participant->id],
                     [
-                        'account_id' => $summonerDto->accountId,
+                        'account_id' => $summonerDto->puuid,
                         'level' => $summonerDto->summonerLevel,
                         'profile_icon_id' => $summonerDto->profileIconId,
                         'current_tier' => $tier,
