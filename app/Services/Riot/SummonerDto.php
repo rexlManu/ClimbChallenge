@@ -7,7 +7,7 @@ class SummonerDto
     public function __construct(
         public int $profileIconId,
         public int $revisionDate,
-        public string $id,
+        // public string $id,
         public string $puuid,
         public int $summonerLevel,
     ) {}
@@ -17,7 +17,7 @@ class SummonerDto
         return new self(
             profileIconId: $data['profileIconId'],
             revisionDate: $data['revisionDate'],
-            id: $data['id'],
+            // id: $data['id'],
             puuid: $data['puuid'],
             summonerLevel: $data['summonerLevel'],
         );
