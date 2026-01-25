@@ -18,23 +18,25 @@ class ClimbChallengeController extends Controller
         // Get all participants with their current summoner data
         $participants = QueryBuilder::for(Participant::class)
             ->allowedSorts(['display_name'])
-            ->with(['summoner' => function ($query) {
-                $query->select([
-                    'id',
-                    'participant_id',
-                    'level',
-                    'profile_icon_id',
-                    'current_tier',
-                    'current_rank',
-                    'current_league_points',
-                    'current_wins',
-                    'current_losses',
-                    'peak_tier',
-                    'peak_rank',
-                    'peak_league_points',
-                    'peak_achieved_at'
-                ]);
-            }])
+            ->with([
+                'summoner' => function ($query) {
+                    $query->select([
+                        'id',
+                        'participant_id',
+                        'level',
+                        'profile_icon_id',
+                        'current_tier',
+                        'current_rank',
+                        'current_league_points',
+                        'current_wins',
+                        'current_losses',
+                        'peak_tier',
+                        'peak_rank',
+                        'peak_league_points',
+                        'peak_achieved_at'
+                    ]);
+                }
+            ])
             ->get();
 
         // Bulk calculate LP statistics for all summoners in a single query for optimal performance
@@ -102,7 +104,7 @@ class ClimbChallengeController extends Controller
         }
 
         $placeholders = str_repeat('?,', count($summonerIds) - 1) . '?';
-        
+
         $lpData = DB::select("
             SELECT 
                 st.summoner_id,
@@ -118,7 +120,7 @@ class ClimbChallengeController extends Controller
         foreach ($lpData as $data) {
             $totalGained = $data->total_gained ?? 0;
             $totalLost = $data->total_lost ?? 0;
-            
+
             $statistics[$data->summoner_id] = [
                 'total_lp_gained' => $totalGained,
                 'total_lp_lost' => $totalLost,
@@ -256,18 +258,18 @@ class ClimbChallengeController extends Controller
     {
         $date = $request->get('date', now()->format('Y-m-d'));
         $currentDateTime = $request->get('currentTime', now()->format('Y-m-d H:i:s'));
-        
+
         // Create center time from date and current time
         $centerTime = \Carbon\Carbon::parse($currentDateTime);
         if ($request->has('date') && !$request->has('currentTime')) {
             // If only date is provided, use current time of day but on the specified date
             $centerTime = \Carbon\Carbon::parse($date . ' ' . now()->format('H:i:s'));
         }
-        
+
         // Generate 24 hours centered around current time (12 hours before, 12 hours after)
         $startTime = $centerTime->copy()->subHours(12);
         $endTime = $centerTime->copy()->addHours(12);
-        
+
         $rawData = DB::table('summoner_tracks as st')
             ->join('summoners as s', 'st.summoner_id', '=', 's.id')
             ->join('participants as p', 's.participant_id', '=', 'p.id')
@@ -388,6 +390,186 @@ class ClimbChallengeController extends Controller
         // No transformation needed for display names
 
         return $matches->groupBy('match_date');
+    }
+
+    public function show(Participant $participant)
+    {
+        $participant->load([
+            'summoner' => function ($query) {
+                $query->select([
+                    'id',
+                    'participant_id',
+                    'level',
+                    'profile_icon_id',
+                    'current_tier',
+                    'current_rank',
+                    'current_league_points',
+                    'current_wins',
+                    'current_losses',
+                    'current_win_rate',
+                    'current_formatted_rank',
+                    'current_total_games',
+                    'peak_tier',
+                    'peak_rank',
+                    'peak_league_points',
+                    'peak_achieved_at',
+                    'peak_formatted_rank'
+                ]);
+            }
+        ]);
+
+        // Get LP stats for this summoner
+        $lpStatistics = $participant->summoner ? $this->getBulkLpStatistics(collect([$participant])) : [];
+        $stats = $lpStatistics[$participant->summoner?->id] ?? null;
+
+        $participantData = [
+            'id' => $participant->id,
+            'display_name' => $participant->display_name,
+            'riot_id' => $participant->displayed_riot_id,
+            'hide_name' => $participant->hide_name,
+            'summoner' => $participant->summoner ? [
+                'id' => $participant->summoner->id,
+                'level' => $participant->summoner->level,
+                'profile_icon_id' => $participant->summoner->profile_icon_id,
+                'current_tier' => $participant->summoner->current_tier,
+                'current_rank' => $participant->summoner->current_rank,
+                'current_league_points' => $participant->summoner->current_league_points,
+                'current_wins' => $participant->summoner->current_wins,
+                'current_losses' => $participant->summoner->current_losses,
+                'current_win_rate' => $participant->summoner->current_win_rate,
+                'current_formatted_rank' => $participant->summoner->current_formatted_rank,
+                'current_total_games' => $participant->summoner->current_total_games,
+                'peak_tier' => $participant->summoner->peak_tier,
+                'peak_rank' => $participant->summoner->peak_rank,
+                'peak_league_points' => $participant->summoner->peak_league_points,
+                'peak_achieved_at' => $participant->summoner->peak_achieved_at,
+                'peak_formatted_rank' => $participant->summoner->peak_formatted_rank,
+                'total_lp_gained' => $stats['total_lp_gained'] ?? 0,
+                'total_lp_lost' => $stats['total_lp_lost'] ?? 0,
+                'net_lp_change' => $stats['net_lp_change'] ?? 0,
+                'total_dodges' => $stats['total_dodges'] ?? 0,
+            ] : null,
+        ];
+
+        // Get recent matches for this participant
+        $recentMatches = $this->getParticipantRecentMatches($participant->id);
+
+        // Get rank progression for this participant
+        $rankProgression = $this->getParticipantRankProgression($participant->id);
+
+        // Get champion stats for this participant
+        $championStats = $this->getParticipantChampionStatistics($participant->id);
+
+        return Inertia::render('ClimbChallenge/Profile', [
+            'participant' => $participantData,
+            'recentMatches' => $recentMatches,
+            'rankProgression' => $rankProgression,
+            'championStats' => $championStats,
+        ]);
+    }
+
+    private function getParticipantRecentMatches($participantId, int $limit = 50)
+    {
+        $matches = DB::table('league_match_summoners as lms')
+            ->join('league_matches as lm', 'lms.league_match_id', '=', 'lm.id')
+            ->join('summoner_tracks as st', 'lms.summoner_track_id', '=', 'st.id')
+            ->join('summoners as s', 'st.summoner_id', '=', 's.id')
+            ->join('participants as p', 's.participant_id', '=', 'p.id')
+            ->select([
+                'p.display_name',
+                'p.hide_name',
+                'lms.champion',
+                'lms.kills',
+                'lms.deaths',
+                'lms.assists',
+                'lms.result',
+                'st.lp_change',
+                'st.lp_change_type',
+                'st.lp_change_reason',
+                'lm.created_at as match_date'
+            ])
+            ->where('p.id', $participantId)
+            ->orderBy('lm.created_at', 'desc')
+            ->limit($limit)
+            ->get();
+
+        return $matches->groupBy('match_date');
+    }
+
+    private function getParticipantRankProgression($participantId)
+    {
+        $rawData = DB::table('summoner_tracks as st')
+            ->join('summoners as s', 'st.summoner_id', '=', 's.id')
+            ->join('participants as p', 's.participant_id', '=', 'p.id')
+            ->select([
+                'p.display_name',
+                'st.tier',
+                'st.rank',
+                'st.league_points',
+                'st.created_at'
+            ])
+            ->where('p.id', $participantId)
+            ->orderBy('st.created_at')
+            ->get();
+
+        $allDates = $rawData->map(function ($item) {
+            return \Carbon\Carbon::parse($item->created_at)->format('Y-m-d');
+        })->unique()->sort()->values();
+
+        $player = $rawData->first()->display_name ?? 'Player';
+        $allPlayers = collect([$player]);
+
+        $availableDates = $allDates->map(function ($date) {
+            return [
+                'value' => $date,
+                'label' => \Carbon\Carbon::parse($date)->format('M j, Y')
+            ];
+        });
+
+        $dailyChartData = $this->getDailyChartData($rawData, $allDates, $allPlayers);
+
+        return [
+            'dailyChartData' => $dailyChartData->values(),
+            'players' => $allPlayers,
+            'availableDates' => $availableDates->values(),
+        ];
+    }
+
+    private function getParticipantChampionStatistics($participantId)
+    {
+        $results = DB::table('league_match_summoners as lms')
+            ->join('summoner_tracks as st', 'lms.summoner_track_id', '=', 'st.id')
+            ->join('summoners as s', 'st.summoner_id', '=', 's.id')
+            ->join('participants as p', 's.participant_id', '=', 'p.id')
+            ->select([
+                'lms.champion',
+                DB::raw('COUNT(*) as games_played'),
+                DB::raw('SUM(CASE WHEN lms.result = "WIN" THEN 1 ELSE 0 END) as wins'),
+                DB::raw('SUM(CASE WHEN lms.result = "LOSS" THEN 1 ELSE 0 END) as losses'),
+                DB::raw('AVG(lms.kills) as avg_kills'),
+                DB::raw('AVG(lms.deaths) as avg_deaths'),
+                DB::raw('AVG(lms.assists) as avg_assists'),
+                DB::raw('ROUND(AVG((lms.kills + lms.assists) / CASE WHEN lms.deaths = 0 THEN 1 ELSE lms.deaths END), 2) as avg_kda'),
+                DB::raw('ROUND((SUM(CASE WHEN lms.result = "WIN" THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as win_rate')
+            ])
+            ->where('p.id', $participantId)
+            ->groupBy('lms.champion')
+            ->orderBy('games_played', 'desc')
+            ->get();
+
+        return $results->map(function ($stat) {
+            return [
+                'champion' => $stat->champion,
+                'games_played' => $stat->games_played,
+                'wins' => $stat->wins,
+                'losses' => $stat->losses,
+                'avg_kills' => $stat->avg_kills,
+                'avg_deaths' => $stat->avg_deaths,
+                'avg_assists' => $stat->avg_assists,
+                'avg_kda' => $stat->avg_kda,
+                'win_rate' => $stat->win_rate,
+            ];
+        });
     }
 
     private function getRankValue($tier, $rank, $lp)

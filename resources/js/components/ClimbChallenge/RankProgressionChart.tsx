@@ -220,19 +220,19 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
 
     if (!currentData || currentData.length === 0 || !currentPlayers || currentPlayers.length === 0) {
         return (
-            <Card className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
+            <Card className="border-border bg-card shadow-sm">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-white">
-                        <TrendingUp className="h-5 w-5 text-blue-400" />
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-primary" />
                         Rank Progression
                     </CardTitle>
-                    <CardDescription className="text-slate-400">Track rank progress over time</CardDescription>
+                    <CardDescription>Track rank progress over time</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex h-64 items-center justify-center text-slate-400">
+                    <div className="flex h-64 items-center justify-center text-muted-foreground">
                         {isLoadingHourly ? (
                             <div className="flex items-center gap-2">
-                                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-400"></div>
+                                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-primary"></div>
                                 Loading hourly data...
                             </div>
                         ) : (
@@ -245,24 +245,20 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
     }
 
     return (
-        <Card className="border-slate-700 bg-gradient-to-br from-slate-800/80 to-slate-900/80 shadow-2xl backdrop-blur-sm">
+        <Card className="border-border bg-card shadow-sm">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                    <BarChart2 className="h-5 w-5 text-blue-400" />
+                <CardTitle className="flex items-center gap-2">
+                    <BarChart2 className="h-5 w-5 text-primary" />
                     Rank Progression
                 </CardTitle>
-                <CardDescription className="text-slate-400">Track rank progress over time for all players</CardDescription>
+                <CardDescription>Track rank progress over time for all players</CardDescription>
                 <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="flex items-center gap-2">
                         <Button
                             variant={viewType === 'daily' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setViewType('daily')}
-                            className={`flex items-center gap-2 ${
-                                viewType === 'daily'
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                            }`}
+                            className="gap-2"
                         >
                             <Calendar className="h-4 w-4" />
                             Daily View
@@ -271,11 +267,7 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                             variant={viewType === 'hourly' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setViewType('hourly')}
-                            className={`flex items-center gap-2 ${
-                                viewType === 'hourly'
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : 'border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
-                            }`}
+                            className="gap-2"
                         >
                             <Clock className="h-4 w-4" />
                             Hourly View
@@ -284,12 +276,12 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
 
                     {viewType === 'hourly' && (
                         <Select value={selectedDate} onValueChange={setSelectedDate}>
-                            <SelectTrigger className="w-full border-slate-600 bg-slate-700 text-white sm:w-48">
+                            <SelectTrigger className="w-full sm:w-48">
                                 <SelectValue placeholder="Select date" />
                             </SelectTrigger>
-                            <SelectContent className="border-slate-600 bg-slate-800">
+                            <SelectContent>
                                 {availableDates.map((date) => (
-                                    <SelectItem key={date.value} value={date.value} className="text-white hover:bg-slate-700">
+                                    <SelectItem key={date.value} value={date.value}>
                                         {date.label}
                                     </SelectItem>
                                 ))}
@@ -391,10 +383,10 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                                     const displayLabel =
                                         viewType === 'daily'
                                             ? new Date(label).toLocaleDateString('en-US', {
-                                                  month: 'short',
-                                                  day: 'numeric',
-                                                  year: 'numeric',
-                                              })
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                            })
                                             : dataPoint?.display || `${selectedDate} at ${label}`;
 
                                     return (
