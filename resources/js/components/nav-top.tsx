@@ -38,16 +38,29 @@ export function NavTop() {
                     </nav>
                 </div>
                 <div className="ml-auto flex items-center space-x-4">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-2 outline-none">
-                                <UserInfo user={auth.user} />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                            <UserMenuContent user={auth.user} />
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="ml-auto flex items-center space-x-4">
+                        {auth.user ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="flex items-center gap-2 outline-none">
+                                        <UserInfo user={auth.user} />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <UserMenuContent user={auth.user} />
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : (
+                            <div className="flex items-center gap-4">
+                                <Link href="/login" className="text-sm font-medium hover:underline">
+                                    Log in
+                                </Link>
+                                <Link href="/register" className="text-sm font-medium hover:underline">
+                                    Register
+                                </Link>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </header>
