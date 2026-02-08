@@ -18,6 +18,8 @@ interface RecentMatch {
 
 interface RecentMatchesListProps {
     recentMatches: Record<string, RecentMatch[]>;
+    showSummary?: boolean;
+    showPlayerColumn?: boolean;
 }
 
 const getKDAColor = (kda: number): string => {
@@ -47,7 +49,11 @@ const getWinRateColor = (winRate: number): string => {
     return 'text-red-400';
 };
 
-export default function RecentMatchesList({ recentMatches }: RecentMatchesListProps) {
+export default function RecentMatchesList({
+    recentMatches,
+    showSummary = true,
+    showPlayerColumn = true,
+}: RecentMatchesListProps) {
     const matchDates = Object.keys(recentMatches).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
     // Helper function to normalize champion names for ddragon URLs (remove apostrophes)
