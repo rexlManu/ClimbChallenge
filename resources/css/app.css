@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @plugin 'tailwindcss-animate';
 
@@ -6,8 +7,7 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
     --radius-lg: 0.5rem;
     --radius-md: calc(0.5rem - 2px);
@@ -50,40 +50,39 @@
 
 @layer base {
     :root {
-        /* Sleek Dark Theme (Zinc/Slate based) */
-        --background: #09090b; /* zinc-950 */
-        --foreground: #fafafa; /* zinc-50 */
+        --background: #060b14;
+        --foreground: #f8fafc;
 
-        --card: #18181b; /* zinc-900 */
-        --card-foreground: #fafafa;
+        --card: #0f172a;
+        --card-foreground: #f8fafc;
 
-        --popover: #09090b;
-        --popover-foreground: #fafafa;
+        --popover: #0a1222;
+        --popover-foreground: #f8fafc;
 
-        --primary: #fafafa;
-        --primary-foreground: #18181b;
+        --primary: #38bdf8;
+        --primary-foreground: #082f49;
 
-        --secondary: #27272a; /* zinc-800 */
-        --secondary-foreground: #fafafa;
+        --secondary: #1e293b;
+        --secondary-foreground: #f8fafc;
 
-        --muted: #27272a;
-        --muted-foreground: #a1a1aa; /* zinc-400 */
+        --muted: #1f2937;
+        --muted-foreground: #94a3b8;
 
-        --accent: #27272a;
-        --accent-foreground: #fafafa;
+        --accent: #1d4ed8;
+        --accent-foreground: #dbeafe;
 
-        --destructive: #7f1d1d; /* red-900 */
-        --destructive-foreground: #fef2f2; /* red-50 */
+        --destructive: #7f1d1d;
+        --destructive-foreground: #fee2e2;
 
-        --border: #27272a; /* zinc-800 */
-        --input: #27272a;
-        --ring: #fafafa;
+        --border: #1e293b;
+        --input: #1e293b;
+        --ring: #38bdf8;
 
-        --chart-1: #3b82f6; /* blue-500 */
-        --chart-2: #10b981; /* emerald-500 */
-        --chart-3: #f59e0b; /* amber-500 */
-        --chart-4: #8b5cf6; /* violet-500 */
-        --chart-5: #ec4899; /* pink-500 */
+        --chart-1: #38bdf8;
+        --chart-2: #34d399;
+        --chart-3: #f59e0b;
+        --chart-4: #f97316;
+        --chart-5: #fb7185;
 
         --radius: 0.5rem;
     }
@@ -94,5 +93,9 @@
 
     body {
         @apply bg-background text-foreground antialiased;
+        background-image:
+            radial-gradient(circle at 15% 10%, rgb(56 189 248 / 0.14), transparent 32%),
+            radial-gradient(circle at 85% 0%, rgb(59 130 246 / 0.12), transparent 30%);
+        background-attachment: fixed;
     }
 }

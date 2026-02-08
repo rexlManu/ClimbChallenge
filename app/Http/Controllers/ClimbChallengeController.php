@@ -406,14 +406,10 @@ class ClimbChallengeController extends Controller
                     'current_league_points',
                     'current_wins',
                     'current_losses',
-                    'current_win_rate',
-                    'current_formatted_rank',
-                    'current_total_games',
                     'peak_tier',
                     'peak_rank',
                     'peak_league_points',
                     'peak_achieved_at',
-                    'peak_formatted_rank'
                 ]);
             }
         ]);
