@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('league_matches', function (Blueprint $table) {
             $table->id();
             $table->string('match_id')->unique()->index();
-            $table->longText('match_data');
-            $table->longText('timeline_data');
+            $table->longText('match_data')->nullable();
+            $table->longText('timeline_data')->nullable();
             $table->timestamps();
         });
     }

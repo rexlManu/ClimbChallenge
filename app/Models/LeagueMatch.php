@@ -11,11 +11,19 @@ class LeagueMatch extends Model
 {
     protected $fillable = [
         'match_id',
+        'game_started_at',
+        'game_ended_at',
+        'game_duration_seconds',
+        'queue_id',
         'match_data',
         'timeline_data',
     ];
 
     protected $casts = [
+        'game_started_at' => 'datetime',
+        'game_ended_at' => 'datetime',
+        'game_duration_seconds' => 'integer',
+        'queue_id' => 'integer',
         'match_data' => 'array',
         'timeline_data' => 'array',
     ];
@@ -68,6 +76,10 @@ class LeagueMatch extends Model
      */
     public function getGameDurationInMinutesAttribute(): float
     {
+        if ($this->game_duration_seconds !== null) {
+            return round($this->game_duration_seconds / 60, 2);
+        }
+
         $matchDto = $this->match_data_dto;
 
         if (!$matchDto) {
@@ -82,6 +94,10 @@ class LeagueMatch extends Model
      */
     public function getGameCreationAttribute(): ?\Carbon\Carbon
     {
+        if ($this->game_started_at !== null) {
+            return $this->game_started_at;
+        }
+
         $matchDto = $this->match_data_dto;
 
         if (!$matchDto) {
