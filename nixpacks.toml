@@ -12,7 +12,7 @@ nixOverlays = []
 
 [phases.install]
 cmds = [
-    "npm install -g pnpm@10.33.2 && pnpm install --no-frozen-lockfile",
+    "npx --yes pnpm@10.33.2 install --no-frozen-lockfile",
     "composer install -q --no-dev --optimize-autoloader --no-ansi --no-interaction --no-progress --prefer-dist",
 ]
 
@@ -27,7 +27,7 @@ cmds = [
     "cp /assets/supervisord.conf /etc/supervisord.conf",
     "chmod +x /assets/start.sh",
     "chown -R www-data:www-data /var/log /app/storage /app/bootstrap/cache",
-    "pnpm run build:ssr"
+    "npx --yes pnpm@10.33.2 run build:ssr"
 ]
 
 [phases.postbuild]
