@@ -12,7 +12,7 @@ nixOverlays = []
 
 [phases.install]
 cmds = [
-    "corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --no-frozen-lockfile",
+    "npm install -g pnpm@10.33.2 && pnpm install --no-frozen-lockfile",
     "composer install -q --no-dev --optimize-autoloader --no-ansi --no-interaction --no-progress --prefer-dist",
 ]
 
