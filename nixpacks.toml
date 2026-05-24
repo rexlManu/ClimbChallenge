@@ -8,6 +8,7 @@ nixPkgs = [
     "python311Packages.supervisor",
 ]
 nixLibs = ["libmysqlclient"]
+nixOverlays = []
 
 [phases.install]
 cmds = [
