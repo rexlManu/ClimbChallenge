@@ -2,7 +2,7 @@
 nixPkgs = ["...", "python311Packages.supervisor"]
 
 [phases.install]
-cmds = ["bun install", "composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist"]
+cmds = ["pnpm install", "composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist"]
 
 [phases.build]
 cmds = [
@@ -21,7 +21,7 @@ cmds = [
 [phases.postbuild]
 cmds = [
     "php artisan migrate --force",
-    "bun run build:ssr",
+    "pnpm run build:ssr",
     "php artisan config:cache",
     "php artisan route:cache",
     "php artisan optimize",
