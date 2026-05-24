@@ -12,11 +12,11 @@ database:
 use_dns_when_possible: true
 composer_version: "2"
 web_environment: []
-corepack_enable: false
+corepack_enable: true
 
 web_extra_daemons:
     - name: vite
-      command: bash -c 'bun install && bun run dev'
+      command: bash -c 'pnpm install && pnpm run dev'
       directory: /var/www/html
 
 # Key features of DDEV's config.yaml:

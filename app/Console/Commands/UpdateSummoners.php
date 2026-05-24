@@ -10,6 +10,7 @@ use App\Services\Riot\LeagueMatchResult;
 use App\Services\Riot\Match\ParticipantDto;
 use App\Services\Riot\QueueType;
 use App\Services\RiotService;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -45,14 +46,16 @@ class UpdateSummoners extends Command
                 $summonerDto = $this->riotService->getSummoner($participant->puuid);
 
                 if ($summonerDto === null) {
-                    $this->error('Summoner not found for ' . $participant->display_name);
+                    $this->error('Summoner not found for '.$participant->display_name);
+
                     return;
                 }
 
                 $leagueEntries = $this->riotService->getLeagueEntries($participant->puuid);
 
                 if ($leagueEntries === null) {
-                    $this->error('League entries not found for ' . $participant->display_name);
+                    $this->error('League entries not found for '.$participant->display_name);
+
                     return;
                 }
 
@@ -97,17 +100,17 @@ class UpdateSummoners extends Command
                     $currentRankValue = $this->getRankValue($tier, $rank, $leaguePoints);
                     $previousRankValue = $this->getRankValue($lastTrack->tier, $lastTrack->rank, $lastTrack->league_points);
                     $lpChange = $currentRankValue - $previousRankValue;
-                    
+
                     if ($lpChange > 0) {
                         $lpChangeType = 'gain';
                         $lpChangeReason = 'match_win';
                     } elseif ($lpChange < 0) {
                         $lpChangeType = 'loss';
-                        
+
                         // Detect potential dodges
                         // Dodges are typically -5LP (first dodge) or -15LP (subsequent dodges)
                         // and happen without a match being played (same wins/losses)
-                        if (($lpChange === -5 || $lpChange === -15) && 
+                        if (($lpChange === -5 || $lpChange === -15) &&
                             $lastTrack->wins === $wins && $lastTrack->losses === $losses &&
                             $lastTrack->tier === $tier && $lastTrack->rank === $rank) {
                             $lpChangeReason = 'dodge';
@@ -122,7 +125,7 @@ class UpdateSummoners extends Command
                 }
 
                 if (
-                    !$lastTrack ||
+                    ! $lastTrack ||
                     $lastTrack->tier !== $tier ||
                     $lastTrack->rank !== $rank ||
                     $lastTrack->league_points !== $leaguePoints ||
@@ -146,12 +149,13 @@ class UpdateSummoners extends Command
                 $lastMatchFetchedAt = now();
 
                 if ($matchIds === null) {
-                    $this->error('Match ids not found for ' . $participant->display_name);
+                    $this->error('Match ids not found for '.$participant->display_name);
+
                     return;
                 }
 
                 if (count($matchIds) > 1) {
-                    $this->warn('Found more than 1 new match for ' . $participant->display_name);
+                    $this->warn('Found more than 1 new match for '.$participant->display_name);
                 }
 
                 foreach ($matchIds as $matchId) {
@@ -159,24 +163,32 @@ class UpdateSummoners extends Command
                     $timelineDto = $this->riotService->getMatchTimeline($matchId);
 
                     if ($matchDto === null || $timelineDto === null) {
-                        $this->error('Match not found for ' . $matchId);
+                        $this->error('Match not found for '.$matchId);
+
                         continue;
                     }
 
                     if ($matchDto->info->endOfGameResult !== 'GameComplete') {
-                        $this->warn('Match ' . $matchId . ' is not a complete game');
-                        Log::warning('Match ' . $matchId . ' is not a complete game', [
+                        $this->warn('Match '.$matchId.' is not a complete game');
+                        Log::warning('Match '.$matchId.' is not a complete game', [
                             'match_id' => $matchId,
                             'end_of_game_result' => $matchDto->info->endOfGameResult,
                         ]);
+
                         continue;
                     }
 
                     $match = LeagueMatch::updateOrCreate(
                         ['match_id' => $matchId],
                         [
-                            'match_data' => json_encode($matchDto),
-                            'timeline_data' => json_encode($timelineDto),
+                            'game_started_at' => Carbon::createFromTimestampMs($matchDto->info->gameStartTimestamp),
+                            'game_ended_at' => $matchDto->info->gameEndTimestamp
+                                ? Carbon::createFromTimestampMs($matchDto->info->gameEndTimestamp)
+                                : null,
+                            'game_duration_seconds' => $matchDto->info->gameDuration,
+                            'queue_id' => $matchDto->info->queueId,
+                            'match_data' => json_decode(json_encode($matchDto), true),
+                            'timeline_data' => json_decode(json_encode($timelineDto), true),
                         ]
                     );
 
@@ -185,8 +197,9 @@ class UpdateSummoners extends Command
                     $participantData = collect($matchDto->info->participants)
                         ->firstWhere('puuid', $participant->puuid);
 
-                    if (!$participantData) {
+                    if (! $participantData) {
                         $this->error("Participant {$participant->display_name} not found in match {$matchId}");
+
                         continue;
                     }
 
@@ -194,13 +207,13 @@ class UpdateSummoners extends Command
                     $needsUpdate = false;
                     $updates = [];
 
-                    if (!empty($participantData->riotIdGameName) && $participant->gameName !== $participantData->riotIdGameName) {
+                    if (! empty($participantData->riotIdGameName) && $participant->gameName !== $participantData->riotIdGameName) {
                         $updates['gameName'] = $participantData->riotIdGameName;
                         $needsUpdate = true;
                         $this->info("Updating gameName for {$participant->display_name}: {$participant->gameName} -> {$participantData->riotIdGameName}");
                     }
 
-                    if (!empty($participantData->riotIdTagline) && $participant->tagLine !== $participantData->riotIdTagline) {
+                    if (! empty($participantData->riotIdTagline) && $participant->tagLine !== $participantData->riotIdTagline) {
                         $updates['tagLine'] = $participantData->riotIdTagline;
                         $needsUpdate = true;
                         $this->info("Updating tagLine for {$participant->display_name}: {$participant->tagLine} -> {$participantData->riotIdTagline}");
@@ -213,7 +226,7 @@ class UpdateSummoners extends Command
 
                     if ($participantData->gameEndedInEarlySurrender) {
                         $result = LeagueMatchResult::DRAW;
-                    } else if ($participantData->win) {
+                    } elseif ($participantData->win) {
                         $result = LeagueMatchResult::WIN;
                     } else {
                         $result = LeagueMatchResult::LOSS;
@@ -240,7 +253,7 @@ class UpdateSummoners extends Command
                 // Update the last match fetched timestamp
                 $summoner->update(['last_match_fetched_at' => $lastMatchFetchedAt]);
 
-                $this->info('Updated summoner for ' . $participant->display_name);
+                $this->info('Updated summoner for '.$participant->display_name);
             });
     }
 
@@ -264,7 +277,7 @@ class UpdateSummoners extends Command
             'IV' => 0,
             'III' => 100,
             'II' => 200,
-            'I' => 300
+            'I' => 300,
         ];
 
         $tierValue = $tierValues[strtoupper($tier)] ?? -400;

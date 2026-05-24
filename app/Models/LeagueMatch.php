@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Services\Riot\Match\MatchDto;
 use App\Services\Riot\Timeline\TimelineDto;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class LeagueMatch extends Model
 {
@@ -82,7 +83,7 @@ class LeagueMatch extends Model
 
         $matchDto = $this->match_data_dto;
 
-        if (!$matchDto) {
+        if (! $matchDto) {
             return 0;
         }
 
@@ -92,7 +93,7 @@ class LeagueMatch extends Model
     /**
      * Get the game creation timestamp as a carbon instance.
      */
-    public function getGameCreationAttribute(): ?\Carbon\Carbon
+    public function getGameCreationAttribute(): ?Carbon
     {
         if ($this->game_started_at !== null) {
             return $this->game_started_at;
@@ -100,10 +101,10 @@ class LeagueMatch extends Model
 
         $matchDto = $this->match_data_dto;
 
-        if (!$matchDto) {
+        if (! $matchDto) {
             return null;
         }
 
-        return \Carbon\Carbon::createFromTimestamp($matchDto->info->gameCreation / 1000);
+        return Carbon::createFromTimestamp($matchDto->info->gameCreation / 1000);
     }
 }

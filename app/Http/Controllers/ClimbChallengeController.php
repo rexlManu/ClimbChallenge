@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\LeagueMatchSummoner;
 use App\Models\Participant;
 use App\Models\Summoner;
-use App\Models\SummonerTrack;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -33,9 +32,9 @@ class ClimbChallengeController extends Controller
                         'peak_tier',
                         'peak_rank',
                         'peak_league_points',
-                        'peak_achieved_at'
+                        'peak_achieved_at',
                     ]);
-                }
+                },
             ])
             ->get();
 
@@ -103,7 +102,7 @@ class ClimbChallengeController extends Controller
             return [];
         }
 
-        $placeholders = str_repeat('?,', count($summonerIds) - 1) . '?';
+        $placeholders = str_repeat('?,', count($summonerIds) - 1).'?';
 
         $lpData = DB::select("
             SELECT 
@@ -149,7 +148,7 @@ class ClimbChallengeController extends Controller
                 DB::raw('AVG(lms.deaths) as avg_deaths'),
                 DB::raw('AVG(lms.assists) as avg_assists'),
                 DB::raw('ROUND(AVG((lms.kills + lms.assists) / CASE WHEN lms.deaths = 0 THEN 1 ELSE lms.deaths END), 2) as avg_kda'),
-                DB::raw('ROUND((SUM(CASE WHEN lms.result = "WIN" THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as win_rate')
+                DB::raw('ROUND((SUM(CASE WHEN lms.result = "WIN" THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as win_rate'),
             ])
             ->groupBy('p.display_name', 'p.hide_name', 'lms.champion')
             ->orderBy('games_played', 'desc')
@@ -185,7 +184,7 @@ class ClimbChallengeController extends Controller
                 'st.league_points',
                 'st.wins',
                 'st.losses',
-                'st.created_at'
+                'st.created_at',
             ])
             ->orderBy('st.created_at')
             ->get();
@@ -195,7 +194,7 @@ class ClimbChallengeController extends Controller
 
         // Get all unique dates for daily view
         $allDates = $rawData->map(function ($item) {
-            return \Carbon\Carbon::parse($item->created_at)->format('Y-m-d');
+            return Carbon::parse($item->created_at)->format('Y-m-d');
         })->unique()->sort()->values();
 
         // Get all unique players
@@ -205,7 +204,7 @@ class ClimbChallengeController extends Controller
         $availableDates = $allDates->map(function ($date) {
             return [
                 'value' => $date,
-                'label' => \Carbon\Carbon::parse($date)->format('M j, Y')
+                'label' => Carbon::parse($date)->format('M j, Y'),
             ];
         });
 
@@ -231,7 +230,7 @@ class ClimbChallengeController extends Controller
             foreach ($allPlayers as $player) {
                 $playerData = $rawData->where('display_name', $player)
                     ->where(function ($item) use ($date) {
-                        return \Carbon\Carbon::parse($item->created_at)->format('Y-m-d') === $date;
+                        return Carbon::parse($item->created_at)->format('Y-m-d') === $date;
                     })
                     ->first();
 
@@ -241,7 +240,7 @@ class ClimbChallengeController extends Controller
                     // Find the last known value before this date
                     $lastKnown = $rawData->where('display_name', $player)
                         ->where(function ($item) use ($date) {
-                            return \Carbon\Carbon::parse($item->created_at)->format('Y-m-d') < $date;
+                            return Carbon::parse($item->created_at)->format('Y-m-d') < $date;
                         })
                         ->sortByDesc('created_at')
                         ->first();
@@ -260,10 +259,10 @@ class ClimbChallengeController extends Controller
         $currentDateTime = $request->get('currentTime', now()->format('Y-m-d H:i:s'));
 
         // Create center time from date and current time
-        $centerTime = \Carbon\Carbon::parse($currentDateTime);
-        if ($request->has('date') && !$request->has('currentTime')) {
+        $centerTime = Carbon::parse($currentDateTime);
+        if ($request->has('date') && ! $request->has('currentTime')) {
             // If only date is provided, use current time of day but on the specified date
-            $centerTime = \Carbon\Carbon::parse($date . ' ' . now()->format('H:i:s'));
+            $centerTime = Carbon::parse($date.' '.now()->format('H:i:s'));
         }
 
         // Generate 24 hours centered around current time (12 hours before, 12 hours after)
@@ -281,7 +280,7 @@ class ClimbChallengeController extends Controller
                 'st.league_points',
                 'st.wins',
                 'st.losses',
-                'st.created_at'
+                'st.created_at',
             ])
             ->whereBetween('st.created_at', [$startTime, $endTime])
             ->orderBy('st.created_at')
@@ -297,7 +296,7 @@ class ClimbChallengeController extends Controller
             $allHours->push([
                 'time' => $currentHour->format('H:i'),
                 'fullDateTime' => $currentHour->format('Y-m-d H:i'),
-                'display' => $currentHour->format('M j, H:i')
+                'display' => $currentHour->format('M j, H:i'),
             ]);
             $currentHour->addHour();
         }
@@ -314,7 +313,7 @@ class ClimbChallengeController extends Controller
             $hourData = [
                 'time' => $hourInfo['time'],
                 'fullDateTime' => $hourInfo['fullDateTime'],
-                'display' => $hourInfo['display']
+                'display' => $hourInfo['display'],
             ];
             $targetDateTime = $hourInfo['fullDateTime'];
 
@@ -322,7 +321,7 @@ class ClimbChallengeController extends Controller
                 // Find the latest entry for this player up to this hour
                 $playerData = $rawData->where('display_name', $player)
                     ->where(function ($item) use ($targetDateTime) {
-                        return \Carbon\Carbon::parse($item->created_at) <= \Carbon\Carbon::parse($targetDateTime);
+                        return Carbon::parse($item->created_at) <= Carbon::parse($targetDateTime);
                     })
                     ->sortByDesc('created_at')
                     ->first();
@@ -340,7 +339,7 @@ class ClimbChallengeController extends Controller
                             'st.tier',
                             'st.rank',
                             'st.league_points',
-                            'st.created_at'
+                            'st.created_at',
                         ])
                         ->where('p.display_name', $player)
                         ->where('st.created_at', '<', $targetDateTime)
@@ -364,8 +363,8 @@ class ClimbChallengeController extends Controller
 
     private function getRecentMatches(int $limit = 20)
     {
-        $matches = DB::table('league_match_summoners as lms')
-            ->join('league_matches as lm', 'lms.league_match_id', '=', 'lm.id')
+        $matches = DB::table('league_matches as lm')
+            ->join('league_match_summoners as lms', 'lm.id', '=', 'lms.league_match_id')
             ->join('summoner_tracks as st', 'lms.summoner_track_id', '=', 'st.id')
             ->join('summoners as s', 'st.summoner_id', '=', 's.id')
             ->join('participants as p', 's.participant_id', '=', 'p.id')
@@ -380,9 +379,11 @@ class ClimbChallengeController extends Controller
                 'st.lp_change',
                 'st.lp_change_type',
                 'st.lp_change_reason',
-                'lm.created_at as match_date'
+                DB::raw('COALESCE(lm.game_ended_at, lm.game_started_at, lm.created_at) as match_date'),
             ])
-            ->orderBy('lm.created_at', 'desc')
+            ->orderByDesc('lm.game_ended_at')
+            ->orderByDesc('lm.game_started_at')
+            ->orderByDesc('lm.created_at')
             ->limit($limit)
             ->get();
 
@@ -412,7 +413,7 @@ class ClimbChallengeController extends Controller
             'IV' => 0,
             'III' => 100,
             'II' => 200,
-            'I' => 300
+            'I' => 300,
         ];
 
         $tierValue = $tierValues[strtoupper($tier)] ?? -400;
