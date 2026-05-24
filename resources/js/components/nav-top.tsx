@@ -7,7 +7,7 @@ import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Compare',
         href: '/',
     },
     // Add more items here as needed

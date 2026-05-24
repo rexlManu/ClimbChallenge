@@ -336,7 +336,7 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
     }
 
     return (
-        <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
+        <Card className="min-w-0 overflow-hidden border-border/80 bg-card shadow-sm">
             <CardHeader className="gap-5 pb-3">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-1.5">
@@ -407,7 +407,7 @@ export default function RankProgressionChart({ rankProgression }: RankProgressio
                 </div>
             </CardHeader>
             <CardContent className="px-2 pb-5 sm:px-5">
-                <div ref={viewType === 'hourly' ? scrollContainerRef : null} className={viewType === 'hourly' ? 'w-full overflow-x-auto' : ''}>
+                <div ref={viewType === 'hourly' ? scrollContainerRef : null} className={viewType === 'hourly' ? 'w-full overflow-x-auto' : 'min-w-0'}>
                     <ChartContainer
                         config={chartConfig}
                         className={`aspect-auto h-[430px] ${viewType === 'hourly' ? 'w-[1600px] min-w-full' : 'w-full'}`}

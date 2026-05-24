@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link } from '@inertiajs/react';
-import { Crown, Medal, Target, Trophy, Users } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import { Activity, ArrowDownRight, ArrowUpRight, Crown, Medal, Swords, Target, Trophy, Users } from 'lucide-react';
 
 interface SummonerData {
     id: number;
@@ -103,11 +103,35 @@ const getRankValue = (tier: string, rank: string, lp: number): number => {
 };
 
 const getPodiumIcon = (position: number) => {
-    if (position === 0) return <Crown className="h-5 w-5 text-yellow-400" />;
-    if (position === 1) return <Trophy className="h-5 w-5 text-zinc-300" />;
-    if (position === 2) return <Medal className="h-5 w-5 text-orange-400" />;
+    if (position === 0) return <Crown className="h-4 w-4 text-yellow-400" />;
+    if (position === 1) return <Trophy className="h-4 w-4 text-zinc-300" />;
+    if (position === 2) return <Medal className="h-4 w-4 text-orange-400" />;
 
     return null;
+};
+
+const getTrendIcon = (value: number) => {
+    if (value >= 0) {
+        return <ArrowUpRight className="h-4 w-4 text-emerald-300" />;
+    }
+
+    return <ArrowDownRight className="h-4 w-4 text-rose-300" />;
+};
+
+const getKdaScore = (match: RecentMatch): number => {
+    if (match.deaths === 0) {
+        return match.kills + match.assists;
+    }
+
+    return Number(((match.kills + match.assists) / match.deaths).toFixed(2));
+};
+
+const getAverageKda = (matches: RecentMatch[]): number => {
+    if (matches.length === 0) {
+        return 0;
+    }
+
+    return Number((matches.reduce((sum, match) => sum + getKdaScore(match), 0) / matches.length).toFixed(2));
 };
 
 export default function Dashboard({ participants, rankProgression, recentMatches }: DashboardProps) {
@@ -141,106 +165,192 @@ export default function Dashboard({ participants, rankProgression, recentMatches
                   ).toFixed(1),
               )
             : 0;
+    const netLpTotal = rankedParticipants.reduce((sum, participant) => sum + (participant.summoner?.net_lp_change ?? 0), 0);
+    const leader = rankedParticipants[0];
+    const closestChaser = rankedParticipants[1];
+    const leaderGap =
+        leader?.summoner && closestChaser?.summoner
+            ? getRankValue(leader.summoner.current_tier, leader.summoner.current_rank, leader.summoner.current_league_points) -
+              getRankValue(closestChaser.summoner.current_tier, closestChaser.summoner.current_rank, closestChaser.summoner.current_league_points)
+            : 0;
+
+    const playerMatchStats = sortedParticipants.map((participant) => {
+        const matches = allMatches.filter((match) => match.display_name === participant.display_name);
+        const wins = matches.filter((match) => match.result === 'WIN').length;
+        const losses = matches.filter((match) => match.result === 'LOSS').length;
+        const recentWinRate = matches.length > 0 ? Number(((wins / matches.length) * 100).toFixed(1)) : 0;
+
+        return {
+            participant,
+            matches,
+            wins,
+            losses,
+            recentWinRate,
+            averageKda: getAverageKda(matches),
+        };
+    });
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Tracked Summoners', href: '/' }]}>
-            <Head title="Tracked Summoners" />
+        <AppLayout breadcrumbs={[{ title: 'Climb Compare', href: '/' }]}>
+            <Head title="Climb Challenge Compare" />
 
-            <div className="space-y-8">
-                <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/70 p-6 shadow-lg sm:p-8">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_48%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.14),transparent_52%)]" />
-                    <div className="relative z-10 space-y-5">
-                        <Badge variant="secondary" className="border-sky-500/40 bg-sky-500/10 text-sky-200">
-                            Personal op.gg for tracked players
-                        </Badge>
-                        <div className="space-y-2">
-                            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Tracked Summoners Dashboard</h1>
-                            <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">
-                                Leaderboard and match feed only for the summoners you track, with quick access to each player profile.
-                            </p>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <Card className="border-border/70 bg-background/70">
-                                <CardContent className="flex items-center justify-between p-4">
-                                    <div>
-                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">Tracked players</p>
-                                        <p className="text-2xl font-semibold">{sortedParticipants.length}</p>
+            <div className="space-y-6">
+                <section className="overflow-hidden rounded-lg border border-border/70 bg-card">
+                    <div className="grid gap-0 lg:grid-cols-[1.35fr_0.65fr]">
+                        <div className="space-y-6 p-5 sm:p-7">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary" className="border-sky-500/40 bg-sky-500/10 text-sky-200">
+                                    Solo queue race control
+                                </Badge>
+                                <Badge variant="secondary" className="border-border/70 bg-background/70 text-muted-foreground">
+                                    {rankedParticipants.length} tracked players
+                                </Badge>
+                            </div>
+
+                            <div className="max-w-3xl space-y-2">
+                                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Climb Challenge Compare</h1>
+                                <p className="text-sm leading-6 text-muted-foreground sm:text-base">
+                                    Compare ranks, LP movement, win rates, and recent games for everyone in the challenge from one shared view.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                <div className="rounded-md border border-border/70 bg-background/60 p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">Leader</p>
+                                        <Crown className="h-4 w-4 text-yellow-400" />
                                     </div>
-                                    <Users className="h-5 w-5 text-sky-300" />
-                                </CardContent>
-                            </Card>
-                            <Card className="border-border/70 bg-background/70">
-                                <CardContent className="p-4">
-                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">Matches in feed</p>
-                                    <p className="text-2xl font-semibold">{allMatches.length}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-border/70 bg-background/70">
-                                <CardContent className="p-4">
-                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">Average win rate</p>
-                                    <p className="text-2xl font-semibold">{avgWinRate}%</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-border/70 bg-background/70">
-                                <CardContent className="p-4">
-                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">Active tiers</p>
-                                    <p className="text-2xl font-semibold">{activeTiers}</p>
-                                </CardContent>
-                            </Card>
+                                    <p className="mt-2 truncate text-2xl font-semibold">{leader?.display_name ?? '-'}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {leader?.summoner ? `${leader.summoner.current_formatted_rank} · ${leader.summoner.current_league_points} LP` : 'No rank data'}
+                                    </p>
+                                </div>
+                                <div className="rounded-md border border-border/70 bg-background/60 p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">Leader gap</p>
+                                        <Target className="h-4 w-4 text-sky-300" />
+                                    </div>
+                                    <p className="mt-2 text-2xl font-semibold">{leaderGap}</p>
+                                    <p className="text-xs text-muted-foreground">LP over second place</p>
+                                </div>
+                                <div className="rounded-md border border-border/70 bg-background/60 p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">Avg win rate</p>
+                                        <Activity className="h-4 w-4 text-emerald-300" />
+                                    </div>
+                                    <p className="mt-2 text-2xl font-semibold">{avgWinRate}%</p>
+                                    <p className="text-xs text-muted-foreground">Across tracked accounts</p>
+                                </div>
+                                <div className="rounded-md border border-border/70 bg-background/60 p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">Net LP</p>
+                                        {getTrendIcon(netLpTotal)}
+                                    </div>
+                                    <p className={netLpTotal >= 0 ? 'mt-2 text-2xl font-semibold text-emerald-300' : 'mt-2 text-2xl font-semibold text-rose-300'}>
+                                        {netLpTotal > 0 ? '+' : ''}
+                                        {netLpTotal}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">Challenge total</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/70 bg-background/35 p-5 lg:border-t-0 lg:border-l">
+                            <div className="mb-4 flex items-center gap-2">
+                                <Swords className="h-4 w-4 text-sky-300" />
+                                <h2 className="text-sm font-semibold">Current race order</h2>
+                            </div>
+                            <div className="space-y-3">
+                                {sortedParticipants.map((participant, index) => (
+                                    <div key={participant.id} className="flex items-center gap-3 rounded-md border border-border/70 bg-card/70 p-3">
+                                        <Avatar className="h-10 w-10 ring-1 ring-border/70">
+                                            <AvatarImage
+                                                src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
+                                                alt=""
+                                            />
+                                            <AvatarFallback>{participant.display_name[0]}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                                {getPodiumIcon(index)}
+                                                <p className="truncate text-sm font-medium">{participant.display_name}</p>
+                                            </div>
+                                            <p className="truncate text-xs text-muted-foreground">{participant.riot_id}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-semibold">{participant.summoner?.current_league_points ?? '-'} LP</p>
+                                            <p className="text-xs text-muted-foreground">#{index + 1}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <section className="grid gap-5 md:grid-cols-3">
-                    {sortedParticipants.slice(0, 3).map((participant, index) => (
-                        <Card key={participant.id} className="overflow-hidden border-border/70 bg-card/85">
-                            <CardHeader className="pb-2">
+                <section className="grid gap-4 lg:grid-cols-3">
+                    {playerMatchStats.map(({ participant, matches, wins, losses, recentWinRate, averageKda }, index) => (
+                        <Card key={participant.id} className="border-border/70 bg-card/85">
+                            <CardHeader className="pb-3">
                                 <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                        <Link href={`/player/${participant.id}`}>
-                                            <Avatar className="h-12 w-12 ring-1 ring-border/70">
-                                                <AvatarImage
-                                                    src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
-                                                    alt="Profile icon"
-                                                />
-                                                <AvatarFallback>{participant.display_name[0]}</AvatarFallback>
-                                            </Avatar>
-                                        </Link>
-                                        <div>
-                                            <div className="flex items-center gap-2">
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <Avatar className="h-12 w-12 ring-1 ring-border/70">
+                                            <AvatarImage
+                                                src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
+                                                alt=""
+                                            />
+                                            <AvatarFallback>{participant.display_name[0]}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0">
+                                            <CardTitle className="flex items-center gap-2 truncate text-base">
                                                 {getPodiumIcon(index)}
-                                                <Link href={`/player/${participant.id}`} className="font-semibold hover:underline">
-                                                    {participant.display_name}
-                                                </Link>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">{participant.riot_id}</p>
+                                                {participant.display_name}
+                                            </CardTitle>
+                                            <CardDescription className="truncate">{participant.riot_id}</CardDescription>
                                         </div>
                                     </div>
-                                    <span className="text-lg font-semibold text-muted-foreground">#{index + 1}</span>
+                                    <span className="text-sm font-semibold text-muted-foreground">#{index + 1}</span>
                                 </div>
                             </CardHeader>
-                            <CardContent className="space-y-3 pt-2">
+                            <CardContent className="space-y-4">
                                 {participant.summoner ? (
                                     <>
-                                        <Badge className={`border ${tierStyles[participant.summoner.current_tier] ?? tierStyles.UNRANKED}`}>
-                                            {participant.summoner.current_tier} {participant.summoner.current_rank} ·{' '}
-                                            {participant.summoner.current_league_points} LP
-                                        </Badge>
-                                        <div className="space-y-1">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <Badge className={`border ${tierStyles[participant.summoner.current_tier] ?? tierStyles.UNRANKED}`}>
+                                                {participant.summoner.current_tier} {participant.summoner.current_rank} · {participant.summoner.current_league_points} LP
+                                            </Badge>
+                                            <span className={participant.summoner.net_lp_change >= 0 ? 'text-sm font-medium text-emerald-300' : 'text-sm font-medium text-rose-300'}>
+                                                {participant.summoner.net_lp_change > 0 ? '+' : ''}
+                                                {participant.summoner.net_lp_change} LP
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-1.5">
                                             <div className="flex items-center justify-between text-xs">
-                                                <span className="text-muted-foreground">Win rate</span>
+                                                <span className="text-muted-foreground">Season win rate</span>
                                                 <span className="font-medium">{participant.summoner.current_win_rate}%</span>
                                             </div>
                                             <Progress value={participant.summoner.current_win_rate} className="h-1.5" />
                                         </div>
+
+                                        <div className="grid grid-cols-3 gap-2 text-sm">
+                                            <div className="rounded-md bg-background/50 p-2">
+                                                <p className="text-xs text-muted-foreground">Recent</p>
+                                                <p className="font-semibold">{wins}W / {losses}L</p>
+                                            </div>
+                                            <div className="rounded-md bg-background/50 p-2">
+                                                <p className="text-xs text-muted-foreground">Recent WR</p>
+                                                <p className={recentWinRate >= 50 ? 'font-semibold text-emerald-300' : 'font-semibold text-rose-300'}>{recentWinRate}%</p>
+                                            </div>
+                                            <div className="rounded-md bg-background/50 p-2">
+                                                <p className="text-xs text-muted-foreground">Avg KDA</p>
+                                                <p className="font-semibold">{averageKda}</p>
+                                            </div>
+                                        </div>
+
                                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                            <span>
-                                                {participant.summoner.current_wins}W / {participant.summoner.current_losses}L
-                                            </span>
-                                            <span>
-                                                Net LP {participant.summoner.net_lp_change > 0 ? '+' : ''}
-                                                {participant.summoner.net_lp_change}
-                                            </span>
+                                            <span>{participant.summoner.current_wins}W / {participant.summoner.current_losses}L season</span>
+                                            <span>{matches.length} feed matches</span>
                                         </div>
                                     </>
                                 ) : (
@@ -251,102 +361,84 @@ export default function Dashboard({ participants, rankProgression, recentMatches
                     ))}
                 </section>
 
-                <Card className="border-border/70 bg-card/85">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Target className="h-5 w-5 text-sky-300" />
-                            Leaderboard
-                        </CardTitle>
-                        <CardDescription>Only your tracked summoners, sorted by current rank and LP.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="hover:bg-muted/30">
-                                        <TableHead className="w-12">#</TableHead>
-                                        <TableHead>Player</TableHead>
-                                        <TableHead>Rank</TableHead>
-                                        <TableHead className="text-right">LP</TableHead>
-                                        <TableHead className="text-right">Win Rate</TableHead>
-                                        <TableHead className="hidden text-right md:table-cell">Games</TableHead>
-                                        <TableHead className="hidden text-right lg:table-cell">Net LP</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sortedParticipants.map((participant, index) => (
-                                        <TableRow key={participant.id} className="hover:bg-muted/30">
-                                            <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <Link href={`/player/${participant.id}`}>
+                <section className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                    <Card className="min-w-0 border-border/70 bg-card/85">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="h-5 w-5 text-sky-300" />
+                                Compare Table
+                            </CardTitle>
+                            <CardDescription>Snapshot metrics for the challenge, sorted by current rank.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="max-w-full overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableHead className="w-10">#</TableHead>
+                                            <TableHead>Player</TableHead>
+                                            <TableHead>Rank</TableHead>
+                                            <TableHead className="text-right">WR</TableHead>
+                                            <TableHead className="text-right">Net LP</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sortedParticipants.map((participant, index) => (
+                                            <TableRow key={participant.id} className="hover:bg-muted/30">
+                                                <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
                                                         <Avatar className="h-8 w-8 ring-1 ring-border/70">
                                                             <AvatarImage
                                                                 src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/profileicon/${participant.summoner?.profile_icon_id || '1'}.png`}
-                                                                alt="Profile icon"
+                                                                alt=""
                                                             />
                                                             <AvatarFallback>{participant.display_name[0]}</AvatarFallback>
                                                         </Avatar>
-                                                    </Link>
-                                                    <div>
-                                                        <Link href={`/player/${participant.id}`} className="font-medium hover:underline">
-                                                            {participant.display_name}
-                                                        </Link>
-                                                        <p className="text-xs text-muted-foreground">{participant.riot_id}</p>
+                                                        <div>
+                                                            <p className="font-medium">{participant.display_name}</p>
+                                                            <p className="text-xs text-muted-foreground">{participant.riot_id}</p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {participant.summoner ? (
-                                                    <Badge
-                                                        className={`border ${tierStyles[participant.summoner.current_tier] ?? tierStyles.UNRANKED}`}
-                                                    >
-                                                        {participant.summoner.current_tier} {participant.summoner.current_rank}
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right font-medium">
-                                                {participant.summoner?.current_league_points ?? '-'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {participant.summoner ? (
-                                                    <span
-                                                        className={
-                                                            participant.summoner.current_win_rate >= 50
-                                                                ? 'font-medium text-emerald-300'
-                                                                : 'font-medium text-rose-300'
-                                                        }
-                                                    >
-                                                        {participant.summoner.current_win_rate}%
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="hidden text-right text-muted-foreground md:table-cell">
-                                                {participant.summoner?.current_total_games ?? '-'}
-                                            </TableCell>
-                                            <TableCell className="hidden text-right lg:table-cell">
-                                                {participant.summoner ? (
-                                                    <span className={participant.summoner.net_lp_change >= 0 ? 'text-emerald-300' : 'text-rose-300'}>
-                                                        {participant.summoner.net_lp_change > 0 ? '+' : ''}
-                                                        {participant.summoner.net_lp_change}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {participant.summoner ? (
+                                                        <Badge className={`border ${tierStyles[participant.summoner.current_tier] ?? tierStyles.UNRANKED}`}>
+                                                            {participant.summoner.current_tier} {participant.summoner.current_rank}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">-</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {participant.summoner ? (
+                                                        <span className={participant.summoner.current_win_rate >= 50 ? 'font-medium text-emerald-300' : 'font-medium text-rose-300'}>
+                                                            {participant.summoner.current_win_rate}%
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">-</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {participant.summoner ? (
+                                                        <span className={participant.summoner.net_lp_change >= 0 ? 'text-emerald-300' : 'text-rose-300'}>
+                                                            {participant.summoner.net_lp_change > 0 ? '+' : ''}
+                                                            {participant.summoner.net_lp_change}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">-</span>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                <RankProgressionChart rankProgression={rankProgression} />
+                    <RankProgressionChart rankProgression={rankProgression} />
+                </section>
 
                 <RecentMatchesList recentMatches={recentMatches} showSummary showPlayerColumn />
             </div>

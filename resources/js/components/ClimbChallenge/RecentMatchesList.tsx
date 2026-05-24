@@ -131,7 +131,7 @@ export default function RecentMatchesList({ recentMatches, showSummary = true, s
 
     if (matchDates.length === 0) {
         return (
-            <Card className="border-border/70 bg-card/85">
+            <Card className="min-w-0 border-border/70 bg-card/85">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Clock className="h-5 w-5 text-primary" />
@@ -217,7 +217,7 @@ export default function RecentMatchesList({ recentMatches, showSummary = true, s
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                    <div className="overflow-x-auto">
+                    <div className="max-w-full overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="hover:bg-muted/30">
