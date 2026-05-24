@@ -1,8 +1,19 @@
 [phases.setup]
-nixPkgs = ["...", "python311Packages.supervisor"]
+nixPkgs = [
+    "(php83.withExtensions (pe: pe.enabled ++ []))",
+    "nginx",
+    "libmysqlclient",
+    "php83Packages.composer",
+    "nodejs_20",
+    "python311Packages.supervisor",
+]
+nixLibs = ["libmysqlclient"]
 
 [phases.install]
-cmds = ["npm install -g pnpm && pnpm install", "composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist"]
+cmds = [
+    "corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --no-frozen-lockfile",
+    "composer install -q --no-dev --optimize-autoloader --no-ansi --no-interaction --no-progress --prefer-dist",
+]
 
 [phases.build]
 cmds = [
@@ -15,17 +26,15 @@ cmds = [
     "cp /assets/supervisord.conf /etc/supervisord.conf",
     "chmod +x /assets/start.sh",
     "chown -R www-data:www-data /var/log /app/storage /app/bootstrap/cache",
-    "..."
+    "pnpm run build:ssr"
 ]
 
 [phases.postbuild]
 cmds = [
-    "php artisan migrate --force",
-    "pnpm run build:ssr",
     "php artisan config:cache",
     "php artisan route:cache",
     "php artisan optimize",
-    "php artisan storage:link"
+    "php artisan storage:link || true"
 ]
 dependsOn = ["build"]
 
@@ -41,6 +50,9 @@ NIXPACKS_NODE_VERSION = '20'
 
 # Transform the nginx configuration
 node /assets/scripts/prestart.mjs /assets/nginx.template.conf /etc/nginx.conf
+
+# Run database migrations after the runtime environment is available.
+php /app/artisan migrate --force
 
 # Start supervisor
 supervisord -c /etc/supervisord.conf -n
