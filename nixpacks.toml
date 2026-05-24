@@ -1,5 +1,43 @@
 [phases.setup]
-nixPkgs = ["...", "python311Packages.supervisor"]
+nixPkgs = [
+    "php83",
+    "php83Extensions.bcmath",
+    "php83Extensions.ctype",
+    "php83Extensions.curl",
+    "php83Extensions.dom",
+    "php83Extensions.fileinfo",
+    "php83Extensions.filter",
+    "php83Extensions.gd",
+    "php83Extensions.mbstring",
+    "php83Extensions.mysqli",
+    "php83Extensions.mysqlnd",
+    "php83Extensions.opcache",
+    "php83Extensions.openssl",
+    "php83Extensions.pcntl",
+    "php83Extensions.pdo",
+    "php83Extensions.pdo_mysql",
+    "php83Extensions.pdo_sqlite",
+    "php83Extensions.posix",
+    "php83Extensions.readline",
+    "php83Extensions.session",
+    "php83Extensions.simplexml",
+    "php83Extensions.sodium",
+    "php83Extensions.tokenizer",
+    "php83Extensions.xml",
+    "php83Extensions.xmlreader",
+    "php83Extensions.xmlwriter",
+    "php83Extensions.zip",
+    "php83Extensions.zlib",
+    "php83Extensions.intl",
+    "php83Extensions.exif",
+    "php83Extensions.ftp",
+    "php83Extensions.gmp",
+    "nginx",
+    "nodejs-20",
+    "composer",
+    "python311Packages.supervisor",
+]
+cmds = ["npm install -g pnpm"]
 
 [phases.install]
 cmds = ["pnpm install", "composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist"]
