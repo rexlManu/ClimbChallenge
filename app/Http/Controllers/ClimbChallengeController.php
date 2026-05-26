@@ -75,9 +75,6 @@ class ClimbChallengeController extends Controller
             ];
         });
 
-        // Get champion statistics
-        $championStats = $this->getChampionStatistics();
-
         // Get rank progression data
         $rankProgression = $this->getRankProgression();
 
@@ -86,7 +83,6 @@ class ClimbChallengeController extends Controller
 
         return Inertia::render('ClimbChallenge/Dashboard', [
             'participants' => $participants,
-            'championStats' => $championStats,
             'rankProgression' => $rankProgression,
             'recentMatches' => $recentMatches,
         ]);
@@ -173,6 +169,8 @@ class ClimbChallengeController extends Controller
 
     private function getRankProgression()
     {
+        $startDate = now()->subDays(30)->startOfDay();
+
         $rawData = DB::table('summoner_tracks as st')
             ->join('summoners as s', 'st.summoner_id', '=', 's.id')
             ->join('participants as p', 's.participant_id', '=', 'p.id')
@@ -186,6 +184,7 @@ class ClimbChallengeController extends Controller
                 'st.losses',
                 'st.created_at',
             ])
+            ->where('st.created_at', '>=', $startDate)
             ->orderBy('st.created_at')
             ->get();
 

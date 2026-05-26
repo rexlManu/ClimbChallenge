@@ -55,7 +55,6 @@ interface RecentMatch {
 
 interface DashboardProps {
     participants: Participant[];
-    championStats: Record<string, unknown[]>;
     rankProgression: RankProgressionData;
     recentMatches: Record<string, RecentMatch[]>;
 }
