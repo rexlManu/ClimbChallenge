@@ -6,6 +6,7 @@ use App\Models\Participant;
 use App\Models\Summoner;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -75,17 +76,15 @@ class ClimbChallengeController extends Controller
             ];
         });
 
-        // Get rank progression data
-        $rankProgression = $this->getRankProgression();
-
-        // Get recent matches
-        $recentMatches = $this->getRecentMatches();
-
         return Inertia::render('ClimbChallenge/Dashboard', [
             'participants' => $participants,
-            'rankProgression' => $rankProgression,
-            'recentMatches' => $recentMatches,
+            'rankProgression' => null,
         ]);
+    }
+
+    public function getRankProgressionData()
+    {
+        return response()->json($this->getRankProgression());
     }
 
     private function getBulkLpStatistics($participants)
@@ -219,33 +218,30 @@ class ClimbChallengeController extends Controller
 
     private function getDailyChartData($rawData, $allDates, $allPlayers)
     {
-        $getRankValue = function ($tier, $rank, $lp) {
-            return $this->getRankValue($tier, $rank, $lp);
-        };
+        $tracksByPlayer = $rawData
+            ->groupBy('display_name')
+            ->map(function (Collection $tracks) {
+                return $tracks
+                    ->groupBy(fn ($track) => Carbon::parse($track->created_at)->format('Y-m-d'))
+                    ->map(fn (Collection $dayTracks) => $dayTracks->last());
+            });
 
-        return $allDates->map(function ($date) use ($rawData, $allPlayers, $getRankValue) {
+        $latestByPlayer = collect();
+
+        return $allDates->map(function ($date) use ($allPlayers, $tracksByPlayer, $latestByPlayer) {
             $dateData = ['date' => $date];
 
             foreach ($allPlayers as $player) {
-                $playerData = $rawData->where('display_name', $player)
-                    ->where(function ($item) use ($date) {
-                        return Carbon::parse($item->created_at)->format('Y-m-d') === $date;
-                    })
-                    ->first();
+                $playerData = $tracksByPlayer->get($player)?->get($date);
 
-                if ($playerData) {
-                    $dateData[$player] = $getRankValue($playerData->tier, $playerData->rank, $playerData->league_points);
-                } else {
-                    // Find the last known value before this date
-                    $lastKnown = $rawData->where('display_name', $player)
-                        ->where(function ($item) use ($date) {
-                            return Carbon::parse($item->created_at)->format('Y-m-d') < $date;
-                        })
-                        ->sortByDesc('created_at')
-                        ->first();
-
-                    $dateData[$player] = $lastKnown ? $getRankValue($lastKnown->tier, $lastKnown->rank, $lastKnown->league_points) : null;
+                if ($playerData !== null) {
+                    $latestByPlayer[$player] = $playerData;
                 }
+
+                $lastKnown = $latestByPlayer->get($player);
+
+                $dateData[$player] = $lastKnown ? $this->getRankValue($lastKnown->tier, $lastKnown->rank, $lastKnown->league_points) : null;
+                $dateData[$player.'__rank'] = $lastKnown ? $this->formatRankMeta($lastKnown->tier, $lastKnown->rank, $lastKnown->league_points) : null;
             }
 
             return $dateData;
@@ -327,6 +323,7 @@ class ClimbChallengeController extends Controller
 
                 if ($playerData) {
                     $hourData[$player] = $getRankValue($playerData->tier, $playerData->rank, $playerData->league_points);
+                    $hourData[$player.'__rank'] = $this->formatRankMeta($playerData->tier, $playerData->rank, $playerData->league_points);
                 } else {
                     // Find the last known value before this time (broader search)
                     $lastKnown = DB::table('summoner_tracks as st')
@@ -346,6 +343,7 @@ class ClimbChallengeController extends Controller
                         ->first();
 
                     $hourData[$player] = $lastKnown ? $getRankValue($lastKnown->tier, $lastKnown->rank, $lastKnown->league_points) : null;
+                    $hourData[$player.'__rank'] = $lastKnown ? $this->formatRankMeta($lastKnown->tier, $lastKnown->rank, $lastKnown->league_points) : null;
                 }
             }
 
@@ -360,9 +358,24 @@ class ClimbChallengeController extends Controller
         ]);
     }
 
-    private function getRecentMatches(int $limit = 20)
+    public function getRecentMatchesForSummoner(Request $request)
     {
-        $matches = DB::table('league_matches as lm')
+        $summonerId = $request->integer('summoner_id');
+
+        if ($summonerId <= 0) {
+            return response()->json([
+                'matches' => [],
+            ]);
+        }
+
+        return response()->json([
+            'matches' => $this->getRecentMatches($summonerId, 20),
+        ]);
+    }
+
+    private function getRecentMatches(int $summonerId, int $limit = 20)
+    {
+        return DB::table('league_matches as lm')
             ->join('league_match_summoners as lms', 'lm.id', '=', 'lms.league_match_id')
             ->join('summoner_tracks as st', 'lms.summoner_track_id', '=', 'st.id')
             ->join('summoners as s', 'st.summoner_id', '=', 's.id')
@@ -380,16 +393,12 @@ class ClimbChallengeController extends Controller
                 'st.lp_change_reason',
                 DB::raw('COALESCE(lm.game_ended_at, lm.game_started_at, lm.created_at) as match_date'),
             ])
+            ->where('s.id', $summonerId)
             ->orderByDesc('lm.game_ended_at')
             ->orderByDesc('lm.game_started_at')
             ->orderByDesc('lm.created_at')
             ->limit($limit)
             ->get();
-
-        // Keep display names as they are since we're only hiding Riot IDs
-        // No transformation needed for display names
-
-        return $matches->groupBy('match_date');
     }
 
     private function getRankValue($tier, $rank, $lp)
@@ -404,8 +413,8 @@ class ClimbChallengeController extends Controller
             'EMERALD' => 2000,
             'DIAMOND' => 2400,
             'MASTER' => 2800,
-            'GRANDMASTER' => 3200,
-            'CHALLENGER' => 3600,
+            'GRANDMASTER' => 3800,
+            'CHALLENGER' => 4800,
         ];
 
         $rankValues = [
@@ -419,5 +428,14 @@ class ClimbChallengeController extends Controller
         $rankValue = $rankValues[$rank] ?? 0;
 
         return $tierValue + $rankValue + $lp;
+    }
+
+    private function formatRankMeta($tier, $rank, $lp): array
+    {
+        return [
+            'tier' => strtoupper((string) $tier),
+            'rank' => $rank,
+            'lp' => (int) $lp,
+        ];
     }
 }
