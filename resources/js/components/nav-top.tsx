@@ -54,14 +54,9 @@ export function NavTop() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : (
-                            <div className="flex items-center gap-4">
-                                <Link href="/login" className="text-sm font-medium hover:underline">
-                                    Log in
-                                </Link>
-                                <Link href="/register" className="text-sm font-medium hover:underline">
-                                    Register
-                                </Link>
-                            </div>
+                            <Link href="/login" className="text-sm font-medium hover:underline">
+                                Log in
+                            </Link>
                         )}
                     </div>
                 </div>
