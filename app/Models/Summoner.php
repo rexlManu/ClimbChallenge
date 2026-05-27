@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Summoner extends Model
 {
@@ -24,6 +23,7 @@ class Summoner extends Model
         'peak_rank',
         'peak_league_points',
         'peak_achieved_at',
+        'exclude_from_dashboard',
     ];
 
     protected $casts = [
@@ -34,6 +34,7 @@ class Summoner extends Model
         'last_match_fetched_at' => 'datetime',
         'peak_league_points' => 'integer',
         'peak_achieved_at' => 'datetime',
+        'exclude_from_dashboard' => 'boolean',
     ];
 
     /**
@@ -104,7 +105,7 @@ class Summoner extends Model
             return $tier;
         }
 
-        return trim($tier . ' ' . $rank);
+        return trim($tier.' '.$rank);
     }
 
     /**
@@ -120,7 +121,7 @@ class Summoner extends Model
      */
     public function getPeakFormattedRankAttribute(): ?string
     {
-        if (!$this->peak_tier) {
+        if (! $this->peak_tier) {
             return null;
         }
 
@@ -136,7 +137,7 @@ class Summoner extends Model
             return $tier;
         }
 
-        return trim($tier . ' ' . $rank);
+        return trim($tier.' '.$rank);
     }
 
     /**
@@ -150,8 +151,10 @@ class Summoner extends Model
             $this->peak_league_points = $this->current_league_points;
             $this->peak_achieved_at = now();
             $this->save();
+
             return true;
         }
+
         return false;
     }
 

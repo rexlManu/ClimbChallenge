@@ -18,6 +18,7 @@ class ClimbChallengeController extends Controller
         // Get all participants with their current summoner data
         $participants = QueryBuilder::for(Participant::class)
             ->allowedSorts(['display_name'])
+            ->whereHas('summoner', fn ($query) => $query->where('exclude_from_dashboard', false))
             ->with([
                 'summoner' => function ($query) {
                     $query->select([
@@ -34,6 +35,7 @@ class ClimbChallengeController extends Controller
                         'peak_rank',
                         'peak_league_points',
                         'peak_achieved_at',
+                        'exclude_from_dashboard',
                     ]);
                 },
             ])
@@ -184,6 +186,7 @@ class ClimbChallengeController extends Controller
                 'st.created_at',
             ])
             ->where('st.created_at', '>=', $startDate)
+            ->where('s.exclude_from_dashboard', false)
             ->orderBy('st.created_at')
             ->get();
 
@@ -278,6 +281,7 @@ class ClimbChallengeController extends Controller
                 'st.created_at',
             ])
             ->whereBetween('st.created_at', [$startTime, $endTime])
+            ->where('s.exclude_from_dashboard', false)
             ->orderBy('st.created_at')
             ->get();
 
@@ -338,6 +342,7 @@ class ClimbChallengeController extends Controller
                             'st.created_at',
                         ])
                         ->where('p.display_name', $player)
+                        ->where('s.exclude_from_dashboard', false)
                         ->where('st.created_at', '<', $targetDateTime)
                         ->orderBy('st.created_at', 'desc')
                         ->first();
@@ -394,6 +399,7 @@ class ClimbChallengeController extends Controller
                 DB::raw('COALESCE(lm.game_ended_at, lm.game_started_at, lm.created_at) as match_date'),
             ])
             ->where('s.id', $summonerId)
+            ->where('s.exclude_from_dashboard', false)
             ->orderByDesc('lm.game_ended_at')
             ->orderByDesc('lm.game_started_at')
             ->orderByDesc('lm.created_at')

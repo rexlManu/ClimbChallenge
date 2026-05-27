@@ -6,8 +6,8 @@ use App\Filament\Resources\SummonerResource\Pages;
 use App\Models\Summoner;
 use BackedEnum;
 use Filament\Forms;
-use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 
@@ -41,6 +41,9 @@ class SummonerResource extends Resource
                 Forms\Components\TextInput::make('profile_icon_id')
                     ->label('Profile Icon ID')
                     ->numeric(),
+                Forms\Components\Toggle::make('exclude_from_dashboard')
+                    ->label('Exclude from public dashboard')
+                    ->helperText('Hide this account from the leaderboard, charts, and recent games on the public page.'),
                 Forms\Components\Section::make('Current Rank')
                     ->schema([
                         Forms\Components\Select::make('current_tier')
@@ -147,6 +150,10 @@ class SummonerResource extends Resource
                     ->label('Win Rate')
                     ->suffix('%')
                     ->sortable(),
+                Tables\Columns\IconColumn::make('exclude_from_dashboard')
+                    ->label('Hidden')
+                    ->boolean()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('level')
                     ->numeric()
                     ->sortable()
@@ -187,6 +194,8 @@ class SummonerResource extends Resource
                 Tables\Filters\SelectFilter::make('participant_id')
                     ->relationship('participant', 'display_name')
                     ->label('Participant'),
+                Tables\Filters\TernaryFilter::make('exclude_from_dashboard')
+                    ->label('Hidden from dashboard'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
