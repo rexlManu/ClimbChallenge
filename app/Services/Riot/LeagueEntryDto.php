@@ -5,8 +5,8 @@ namespace App\Services\Riot;
 class LeagueEntryDto
 {
     public function __construct(
-        public string $leagueId,
-       // public string $summonerId,
+        public ?string $leagueId,
+        // public string $summonerId,
         public string $puuid,
         public QueueType $queueType,
         public string $tier,
@@ -24,8 +24,8 @@ class LeagueEntryDto
     public static function fromArray(array $data): self
     {
         return new self(
-            leagueId: $data['leagueId'],
-          //  summonerId: $data['summonerId'],
+            leagueId: $data['leagueId'] ?? null,
+            //  summonerId: $data['summonerId'],
             puuid: $data['puuid'],
             queueType: QueueType::from($data['queueType']),
             tier: $data['tier'],
