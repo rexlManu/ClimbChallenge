@@ -8,6 +8,7 @@ use BackedEnum;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -45,7 +46,7 @@ class SummonerResource extends Resource
                 Forms\Components\Toggle::make('exclude_from_dashboard')
                     ->label('Exclude from public dashboard')
                     ->helperText('Hide this account from the leaderboard, charts, and recent games on the public page.'),
-                Forms\Components\Section::make('Current Rank')
+                Section::make('Current Rank')
                     ->schema([
                         Forms\Components\Select::make('current_tier')
                             ->options([
@@ -84,7 +85,7 @@ class SummonerResource extends Resource
                             ->default(0),
                     ])
                     ->columns(2),
-                Forms\Components\Section::make('Peak Rank')
+                Section::make('Peak Rank')
                     ->schema([
                         Forms\Components\Select::make('peak_tier')
                             ->options([

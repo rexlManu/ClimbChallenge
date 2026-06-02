@@ -8,6 +8,7 @@ use BackedEnum;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -33,7 +34,7 @@ class SummonerTrackResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required(),
-                Forms\Components\Section::make('Rank Info')
+                Section::make('Rank Info')
                     ->schema([
                         Forms\Components\Select::make('tier')
                             ->options([
@@ -70,7 +71,7 @@ class SummonerTrackResource extends Resource
                             ->default(0),
                     ])
                     ->columns(3),
-                Forms\Components\Section::make('LP Change')
+                Section::make('LP Change')
                     ->schema([
                         Forms\Components\TextInput::make('lp_change')
                             ->label('LP Change')
