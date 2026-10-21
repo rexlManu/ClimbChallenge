@@ -6,7 +6,6 @@ nixPkgs = [
     version = "8.4.27";
     hash = "sha256-slMKh3xyL0sIyeF0owywi6wrfhkD7m6eMV8KqfX4LCQ=";
     extensions = { enabled, all }: enabled ++ [ all.redis ];
-    extraConfig = "session.upload_progress.enabled=0";
   };
   patchedPhp = php.withExtensions ({ enabled, ... }: map (ext:
   if ext.extensionName == "filter" then ext.overrideAttrs (old: {
