@@ -20,3 +20,5 @@ if [ "$actual_php" != '8.4.27' ]; then
 fi
 
 echo 'The image runs PHP 8.4.27.'
+
+docker run --rm --entrypoint supervisord "$image" --version
