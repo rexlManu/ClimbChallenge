@@ -1,0 +1,29 @@
+{
+	admin off
+	persist_config off
+	auto_https off
+
+	frankenphp
+}
+
+:{$PORT:8081} {
+	root * /app/public
+	encode zstd gzip
+	header X-Content-Type-Options nosniff
+
+	request_body {
+		max_size 36700160
+	}
+
+	@hidden {
+		path_regexp hidden (^|/)\.
+		not path /.well-known/*
+	}
+	handle @hidden {
+		respond 403
+	}
+
+	handle {
+		php_server
+	}
+}
