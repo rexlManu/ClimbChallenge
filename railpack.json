@@ -8,13 +8,6 @@
         "supervisor"
     ],
     "steps": {
-        "packages:image": {
-            "inputs": [
-                {
-                    "image": "dunglas/frankenphp:php8.4.27-bookworm"
-                }
-            ]
-        },
         "extensions": {
             "deployOutputs": [],
             "commands": [
@@ -51,6 +44,18 @@
             "variables": {
                 "COMPOSER_NO_DEV": "1"
             }
+        },
+        "prepare": {
+            "inputs": [
+                {
+                    "image": "dunglas/frankenphp:php8.4.27-bookworm"
+                }
+            ],
+            "deployOutputs": [],
+            "commands": [
+                "apt-get update && apt-get install -y git zip unzip ca-certificates",
+                "..."
+            ]
         }
     },
     "deploy": {

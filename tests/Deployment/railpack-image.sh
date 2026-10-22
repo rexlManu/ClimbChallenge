@@ -12,3 +12,11 @@ if [ "$actual" != "$expected" ]; then
 fi
 
 echo 'The image contains the Laravel application entry point.'
+
+actual_php="$(docker run --rm --entrypoint php "$image" -r 'echo PHP_VERSION;')"
+if [ "$actual_php" != '8.4.27' ]; then
+    echo "The image must run PHP 8.4.27; found $actual_php." >&2
+    exit 1
+fi
+
+echo 'The image runs PHP 8.4.27.'
